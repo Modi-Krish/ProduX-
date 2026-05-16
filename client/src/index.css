@@ -395,8 +395,9 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px);
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: flex-start; justify-content: center;
   z-index: 200; padding: 1.5rem;
+  overflow-y: auto;
 }
 
 .modal-content {
@@ -405,6 +406,8 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   border-radius: var(--radius-leaf); padding: 2.5rem;
   box-shadow: 12px 12px 0px 0px var(--fg);
   animation: modalPop 0.5s var(--bounce) both;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
 }
 @keyframes modalPop { from { opacity: 0; transform: scale(0.9) translateY(40px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
@@ -825,9 +828,11 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   animation: alarmPulse 1s ease-in-out infinite;
+  overflow-y: auto;
+  padding: 2rem 1.5rem;
 }
 
 @keyframes alarmPulse {
@@ -842,9 +847,11 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   padding: 3rem 2.5rem;
   text-align: center;
   max-width: 420px;
-  width: 90%;
+  width: 100%;
   box-shadow: 12px 12px 0px var(--fg);
   animation: alarmBounce 0.5s var(--bounce);
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 @keyframes alarmBounce {

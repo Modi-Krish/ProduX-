@@ -1,0 +1,17 @@
+{
+  "name": "real-time-productivity-system",
+  "version": "1.0.0",
+  "description": "MERN Real-Time Productivity Management System with Playful Geometric Design",
+  "main": "server/server.js",
+  "scripts": {
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install",
+    "client": "cd client && npm run dev",
+    "server": "cd server && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "cd client && npm install && npm run build",
+    "start": "cd server && npm install && node server.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -679,35 +679,56 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   gap: 1rem;
 }
 
-/* ── Repeat / Habit Selector ── */
-.repeat-selector {
+/* ── Task Type Selector ── */
+.task-type-selector {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.625rem;
+  flex-wrap: wrap;
 }
 
-.repeat-pill {
+.type-btn {
   flex: 1;
-  padding: 0.6rem 0.75rem;
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 0.5rem;
   border: 2px solid var(--border);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   background: var(--card);
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
   transition: all var(--transition);
-  text-align: center;
+  cursor: pointer;
 }
 
-.repeat-pill:hover {
+.type-btn .type-icon {
+  font-size: 1.25rem;
+}
+
+.type-btn .type-text {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.type-btn:hover {
   border-color: var(--fg);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
-.repeat-pill.active {
+.type-btn.active {
   border-color: var(--accent);
-  background: var(--accent);
-  color: white;
-  box-shadow: 3px 3px 0px 0px var(--fg);
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--accent);
+  box-shadow: 4px 4px 0px 0px var(--accent);
+}
+
+.type-btn.challenge.active {
+  border-color: var(--tertiary);
+  background: rgba(251, 191, 36, 0.1);
+  color: #92400E;
+  box-shadow: 4px 4px 0px 0px var(--tertiary);
 }
 
 .repeat-hint {
@@ -816,6 +837,27 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
 
 .subtask-item.completed .subtask-check {
   color: var(--secondary);
+}
+
+.subtask-add-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.subtask-add-row .form-input {
+  flex: 1;
+  min-width: 0; /* Important for flex-shrink */
+}
+
+@media (max-width: 480px) {
+  .subtask-add-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .subtask-add-row .btn {
+    width: 100%;
+  }
 }
 
 /* ═══════════════════════════════════════════════════ */
@@ -1738,7 +1780,9 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   .auth-card { padding: 2rem 1.5rem; margin-bottom: 3rem; border-radius: 20px 4px 20px 4px; box-shadow: 6px 6px 0px 0px var(--fg); }
   .auth-header h1 { font-size: 1.8rem; }
   .auth-form .btn-primary { width: 100%; }
-  .modal-content { padding: 2rem 1.5rem; }
+  .modal-content { padding: 1.5rem 1.25rem; }
+  .task-type-selector { gap: 0.5rem !important; }
+  .type-btn { padding: 0.5rem 0.25rem !important; min-width: 65px !important; }
   .footer-links { flex-direction: column; gap: 0.5rem; align-items: center; }
   .footer-link { width: 100%; justify-content: center; font-size: 0.85rem; padding: 0.75rem; }
   .gh-xp-section { min-width: 0; }

@@ -137,20 +137,18 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
           {/* Subtasks Section */}
           <div className="form-group">
             <label className="form-label">Subtasks (Optional)</label>
-            <div className="subtask-add-row" style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+            <div className="subtask-add-row">
               <input
                 className="form-input"
                 type="text"
                 value={newSubtask}
                 onChange={(e) => setNewSubtask(e.target.value)}
                 placeholder="Add subtask..."
-                style={{ flex: 1 }}
               />
               <button 
                 type="button" 
-                className="btn btn-secondary" 
+                className="btn btn-secondary btn-sm" 
                 onClick={addSubtask}
-                style={{ whiteSpace: 'nowrap' }}
               >
                 Add
               </button>
@@ -194,34 +192,38 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
           {!isEditing && (
             <div className="form-group">
               <label className="form-label">Task Type</label>
-              <div className="repeat-selector">
+              <div className="task-type-selector">
                 <button
                   type="button"
-                  className={`repeat-pill ${formData.repeat === 'None' && !formData.is21DayChallenge ? 'active' : ''}`}
+                  className={`type-btn ${formData.repeat === 'None' && !formData.is21DayChallenge ? 'active' : ''}`}
                   onClick={() => setFormData({ ...formData, repeat: 'None', is21DayChallenge: false })}
                 >
-                  🚫 One-off
+                  <span className="type-icon">🚫</span>
+                  <span className="type-text">One-off</span>
                 </button>
                 <button
                   type="button"
-                  className={`repeat-pill ${formData.repeat === 'Daily' ? 'active' : ''}`}
+                  className={`type-btn ${formData.repeat === 'Daily' ? 'active' : ''}`}
                   onClick={() => setFormData({ ...formData, repeat: 'Daily', is21DayChallenge: false })}
                 >
-                  📅 Daily
+                  <span className="type-icon">📅</span>
+                  <span className="type-text">Daily</span>
                 </button>
                 <button
                   type="button"
-                  className={`repeat-pill ${formData.repeat === 'Weekly' ? 'active' : ''}`}
+                  className={`type-btn ${formData.repeat === 'Weekly' ? 'active' : ''}`}
                   onClick={() => setFormData({ ...formData, repeat: 'Weekly', is21DayChallenge: false })}
                 >
-                  🗓️ Weekly
+                  <span className="type-icon">🗓️</span>
+                  <span className="type-text">Weekly</span>
                 </button>
                 <button
                   type="button"
-                  className={`repeat-pill challenge ${formData.is21DayChallenge ? 'active' : ''}`}
+                  className={`type-btn challenge ${formData.is21DayChallenge ? 'active' : ''}`}
                   onClick={() => setFormData({ ...formData, repeat: 'None', is21DayChallenge: true })}
                 >
-                  🏆 21 Days
+                  <span className="type-icon">🏆</span>
+                  <span className="type-text">21 Days</span>
                 </button>
               </div>
               {formData.repeat !== 'None' && (

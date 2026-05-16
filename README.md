@@ -3,7 +3,8 @@
 
 **ProduX** is not just a task manager; it's a social productivity ecosystem designed to turn your work into an adventure. Built with a bold **Playful Geometric** aesthetic, ProduX combines professional task management with RPG-style gamification, real-time social interactions, and active focus protection.
 
-![image](https://github.com/user-attachments/assets/220e43fe-f15e-40ac-ac4d-4a3794f955e8)
+<img width="1894" height="942" alt="image" src="https://github.com/user-attachments/assets/03cac4e5-9485-4a27-a433-e933b631ad7a" />
+
 
 ---
 

@@ -48,6 +48,19 @@ const taskSchema = new mongoose.Schema(
       enum: ['None', 'Daily', 'Weekly'],
       default: 'None',
     },
+    is21DayChallenge: {
+      type: Boolean,
+      default: false,
+    },
+    hobbyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Hobby',
+      default: null,
+    },
+    alarmTime: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

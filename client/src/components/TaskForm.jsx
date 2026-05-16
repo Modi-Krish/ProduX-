@@ -12,6 +12,8 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
     status: initialData?.status || 'Pending',
     subtasks: initialData?.subtasks || [],
     repeat: initialData?.repeat || 'None',
+    is21DayChallenge: initialData?.is21DayChallenge || false,
+    alarmTime: initialData?.alarmTime ? new Date(initialData.alarmTime).toISOString().slice(0, 16) : '',
   });
 
   const [newSubtask, setNewSubtask] = useState('');
@@ -42,6 +44,7 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
     onSubmit({
       ...formData,
       deadline: new Date(formData.deadline).toISOString(),
+      alarmTime: formData.alarmTime ? new Date(formData.alarmTime).toISOString() : null,
     });
   };
 
@@ -113,6 +116,24 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
             </div>
           </div>
 
+          {/* Alarm */}
+          <div className="form-group">
+            <label className="form-label" htmlFor="task-alarm">⏰ Set Alarm (Optional)</label>
+            <input
+              id="task-alarm"
+              className="form-input"
+              type="datetime-local"
+              name="alarmTime"
+              value={formData.alarmTime}
+              onChange={handleChange}
+            />
+            {formData.alarmTime && (
+              <p className="repeat-hint" style={{ borderLeftColor: '#F59E0B' }}>
+                Alarm will ring at this time. You must solve a math problem to dismiss it!
+              </p>
+            )}
+          </div>
+
           {/* Subtasks Section */}
           <div className="form-group">
             <label className="form-label">Subtasks (Optional)</label>
@@ -169,28 +190,48 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
             </div>
           </div>
 
-          {/* Repeat as Habit — only on create */}
+          {/* Task Type — only on create */}
           {!isEditing && (
             <div className="form-group">
-              <label className="form-label">Repeat as Habit</label>
+              <label className="form-label">Task Type</label>
               <div className="repeat-selector">
-                {['None', 'Daily', 'Weekly'].map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    className={`repeat-pill ${formData.repeat === opt ? 'active' : ''}`}
-                    onClick={() => setFormData({ ...formData, repeat: opt })}
-                  >
-                    {opt === 'None' && '🚫'}
-                    {opt === 'Daily' && '📅'}
-                    {opt === 'Weekly' && '🗓️'}
-                    {' '}{opt}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  className={`repeat-pill ${formData.repeat === 'None' && !formData.is21DayChallenge ? 'active' : ''}`}
+                  onClick={() => setFormData({ ...formData, repeat: 'None', is21DayChallenge: false })}
+                >
+                  🚫 One-off
+                </button>
+                <button
+                  type="button"
+                  className={`repeat-pill ${formData.repeat === 'Daily' ? 'active' : ''}`}
+                  onClick={() => setFormData({ ...formData, repeat: 'Daily', is21DayChallenge: false })}
+                >
+                  📅 Daily
+                </button>
+                <button
+                  type="button"
+                  className={`repeat-pill ${formData.repeat === 'Weekly' ? 'active' : ''}`}
+                  onClick={() => setFormData({ ...formData, repeat: 'Weekly', is21DayChallenge: false })}
+                >
+                  🗓️ Weekly
+                </button>
+                <button
+                  type="button"
+                  className={`repeat-pill challenge ${formData.is21DayChallenge ? 'active' : ''}`}
+                  onClick={() => setFormData({ ...formData, repeat: 'None', is21DayChallenge: true })}
+                >
+                  🏆 21 Days
+                </button>
               </div>
               {formData.repeat !== 'None' && (
                 <p className="repeat-hint">
                   This task will also be tracked as a <strong>{formData.repeat.toLowerCase()}</strong> habit for streaks & bonus XP.
+                </p>
+              )}
+              {formData.is21DayChallenge && (
+                <p className="repeat-hint challenge-hint">
+                  <strong>21-Day Challenge!</strong> Start with 1hr/day → build up to 2.5hrs. Complete all 21 days to master this hobby and earn massive XP.
                 </p>
               )}
             </div>

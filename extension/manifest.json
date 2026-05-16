@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "ProduX Focus Guard",
+  "version": "1.0",
+  "description": "Monitors your screen to ensure you stay focused on the right website during work sessions.",
+  "permissions": [
+    "tabs",
+    "alarms",
+    "notifications",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}

@@ -1,5 +1,6 @@
 const Task = require('../models/Task');
 const Habit = require('../models/Habit');
+const Hobby = require('../models/Hobby');
 const { sortByPriority, attachPriority } = require('../services/priorityService');
 const { processTaskCompletion, awardSubtaskXP } = require('../services/gamificationService');
 
@@ -10,9 +11,9 @@ const { processTaskCompletion, awardSubtaskXP } = require('../services/gamificat
  */
 const createTask = async (req, res, next) => {
   try {
-    const { title, description, category, deadline, subtasks, repeat } = req.body;
+    const { title, description, category, deadline, subtasks, repeat, is21DayChallenge, alarmTime } = req.body;
 
-    const task = await Task.create({
+    const taskData = {
       userId: req.user._id,
       title,
       description,
@@ -20,7 +21,21 @@ const createTask = async (req, res, next) => {
       deadline,
       subtasks: subtasks || [],
       repeat: repeat || 'None',
-    });
+      is21DayChallenge: is21DayChallenge || false,
+      alarmTime: alarmTime || null,
+    };
+
+    // If 21-day challenge, create a Hobby first and link it
+    if (is21DayChallenge) {
+      const hobby = await Hobby.create({
+        userId: req.user._id,
+        title,
+        description,
+      });
+      taskData.hobbyId = hobby._id;
+    }
+
+    const task = await Task.create(taskData);
 
     // If repeat is Daily/Weekly, also create a linked Habit
     if (repeat && repeat !== 'None') {
@@ -56,7 +71,7 @@ const createTask = async (req, res, next) => {
  */
 const getTasks = async (req, res, next) => {
   try {
-    const tasks = await Task.find({ userId: req.user._id });
+    const tasks = await Task.find({ userId: req.user._id }).populate('hobbyId');
     const sorted = sortByPriority(tasks);
 
     res.status(200).json({

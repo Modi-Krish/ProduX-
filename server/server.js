@@ -18,6 +18,8 @@ const taskRoutes = require('./routes/taskRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const gamificationRoutes = require('./routes/gamificationRoutes');
 const habitRoutes = require('./routes/habitRoutes');
+const hobbyRoutes = require('./routes/hobbyRoutes');
+const socialRoutes = require('./routes/socialRoutes');
 
 // Initialize Express
 const app = express();
@@ -60,6 +62,8 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/habits', habitRoutes);
+app.use('/api/hobbies', hobbyRoutes);
+app.use('/api/social', socialRoutes);
 
 // Error handler (must be after routes)
 app.use(errorHandler);

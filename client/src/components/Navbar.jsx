@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { logout } from '../features/auth/authSlice';
 import { disconnectSocket } from '../api/socket';
-import { HiOutlineLogout } from 'react-icons/hi';
+import { HiOutlineLogout, HiTrendingUp, HiHome } from 'react-icons/hi';
 import ProfileModal from './ProfileModal';
 
 const Navbar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useSelector((state) => state.auth);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -28,15 +29,34 @@ const Navbar = () => {
       .slice(0, 2);
   };
 
+  const isOnSocial = location.pathname === '/social';
+
   return (
     <>
       <nav className="navbar">
-        <div className="navbar-brand">
+        <div className="navbar-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
           <div className="brand-icon">⚡</div>
           <span>Produx</span>
         </div>
 
         <div className="navbar-actions">
+          <button
+            className={`btn-nav ${!isOnSocial ? 'active' : ''}`}
+            onClick={() => navigate('/')}
+            title="Dashboard"
+          >
+            <HiHome /> <span className="nav-label">Dashboard</span>
+          </button>
+          <button
+            className={`btn-nav ${isOnSocial ? 'active' : ''}`}
+            onClick={() => navigate('/social')}
+            title="Community"
+          >
+            <HiTrendingUp /> <span className="nav-label">Community</span>
+          </button>
+
+          <div className="nav-divider" />
+
           <div className="navbar-user" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }}>
             <div className="navbar-avatar">{getInitials(user?.name)}</div>
             <span className="user-name">{user?.name}</span>

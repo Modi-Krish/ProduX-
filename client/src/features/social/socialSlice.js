@@ -1,0 +1,147 @@
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import * as socialApi from '../../api/socialApi';
+
+const initialState = {
+  leaderboard: [],
+  friends: [],
+  pendingRequests: [],
+  messages: [],
+  activeChatUser: null,
+  isLoading: false,
+  error: null,
+};
+
+export const fetchLeaderboard = createAsyncThunk(
+  'social/fetchLeaderboard',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.fetchLeaderboard();
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch leaderboard');
+    }
+  }
+);
+
+export const fetchFriends = createAsyncThunk(
+  'social/fetchFriends',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.fetchFriends();
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch friends');
+    }
+  }
+);
+
+export const sendFriendReq = createAsyncThunk(
+  'social/sendFriendReq',
+  async (recipientId, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.sendFriendRequest(recipientId);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to send request');
+    }
+  }
+);
+
+export const respondFriendReq = createAsyncThunk(
+  'social/respondFriendReq',
+  async ({ id, status }, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.respondFriendRequest(id, status);
+      return { ...res.data.data, respondedStatus: status };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to respond');
+    }
+  }
+);
+
+export const fetchChatMessages = createAsyncThunk(
+  'social/fetchMessages',
+  async (userId, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.fetchMessages(userId);
+      return { userId, messages: res.data.data };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch messages');
+    }
+  }
+);
+
+export const sendChatMessage = createAsyncThunk(
+  'social/sendMessage',
+  async ({ receiverId, text }, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.sendMessage(receiverId, text);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to send message');
+    }
+  }
+);
+
+const socialSlice = createSlice({
+  name: 'social',
+  initialState,
+  reducers: {
+    setActiveChatUser: (state, action) => {
+      state.activeChatUser = action.payload;
+    },
+    clearChat: (state) => {
+      state.activeChatUser = null;
+      state.messages = [];
+    },
+    socketNewMessage: (state, action) => {
+      const msg = action.payload;
+      // Only add if relevant to current chat
+      if (
+        state.activeChatUser &&
+        (msg.senderId?._id === state.activeChatUser._id ||
+          msg.receiverId?._id === state.activeChatUser._id)
+      ) {
+        const exists = state.messages.some((m) => m._id === msg._id);
+        if (!exists) state.messages.push(msg);
+      }
+    },
+    socketFriendRequest: (state, action) => {
+      state.pendingRequests.push(action.payload.from);
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchLeaderboard.pending, (state) => { state.isLoading = true; })
+      .addCase(fetchLeaderboard.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.leaderboard = action.payload;
+      })
+      .addCase(fetchLeaderboard.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      .addCase(fetchFriends.fulfilled, (state, action) => {
+        state.friends = action.payload.friends;
+        state.pendingRequests = action.payload.pending;
+      })
+      .addCase(respondFriendReq.fulfilled, (state, action) => {
+        state.pendingRequests = state.pendingRequests.filter(
+          (r) => r.friendshipId !== action.payload._id
+        );
+        if (action.payload.respondedStatus === 'accepted') {
+          // Will refresh via fetchFriends
+        }
+      })
+      .addCase(fetchChatMessages.fulfilled, (state, action) => {
+        state.messages = action.payload.messages;
+      })
+      .addCase(sendChatMessage.fulfilled, (state, action) => {
+        const exists = state.messages.some((m) => m._id === action.payload._id);
+        if (!exists) state.messages.push(action.payload);
+      });
+  },
+});
+
+export const { setActiveChatUser, clearChat, socketNewMessage, socketFriendRequest } = socialSlice.actions;
+export default socialSlice.reducer;

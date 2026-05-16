@@ -226,13 +226,13 @@ async function processTaskCompletion(userId, priorityScore) {
 }
 
 /**
- * Award XP for subtask completion
+ * Award XP for subtask completion or general progress
  */
-async function awardSubtaskXP(userId) {
+async function awardSubtaskXP(userId, amount = 5) {
   const user = await User.findById(userId);
   if (!user) throw new Error('User not found');
 
-  const xpGained = 5; // Fixed XP for subtask
+  const xpGained = amount;
   const oldLevel = user.level;
 
   user.xp += xpGained;

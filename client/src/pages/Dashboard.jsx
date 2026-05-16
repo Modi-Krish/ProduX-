@@ -12,8 +12,9 @@ import Footer from '../components/Footer';
 import GamifiedHeader from '../components/GamifiedHeader';
 import BadgeModal from '../components/BadgeModal';
 import GamificationNotifications from '../components/GamificationNotifications';
+import AlarmOverlay from '../components/AlarmOverlay';
 import toast from 'react-hot-toast';
-import { HiPlus, HiClipboardList, HiCheckCircle, HiClock, HiExclamationCircle, HiLightningBolt, HiTrendingUp } from 'react-icons/hi';
+import { HiPlus, HiClipboardList, HiCheckCircle, HiClock, HiExclamationCircle, HiLightningBolt, HiTrendingUp, HiShieldCheck, HiDownload } from 'react-icons/hi';
 
 const FILTERS = ['All', 'Pending', 'In Progress', 'Completed', 'Overdue'];
 
@@ -186,7 +187,6 @@ const Dashboard = () => {
           </div>
         )}
 
-
         {/* Tasks Section */}
         <div style={{ marginTop: '2rem' }}>
           <div className="section-header">
@@ -227,6 +227,23 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+        {/* Extension Download Banner */}
+        <div className="extension-banner">
+          <div className="ext-banner-icon">
+            <HiShieldCheck />
+          </div>
+          <div className="ext-banner-content">
+            <h3>🛡️ ProduX Focus Guard</h3>
+            <p>Chrome extension that monitors your screen during focus sessions. Get notified when you wander off!</p>
+          </div>
+          <a
+            href="/ProduX-FocusGuard.zip"
+            download="ProduX-FocusGuard.zip"
+            className="ext-banner-btn"
+          >
+            <HiDownload /> Download Extension
+          </a>
+        </div>
       </main>
       <Footer />
 
@@ -252,6 +269,9 @@ const Dashboard = () => {
           onClose={() => setEditingTask(null)}
         />
       )}
+
+      {/* Alarm System */}
+      <AlarmOverlay />
     </>
   );
 };

@@ -4,6 +4,8 @@ import taskReducer from '../features/tasks/taskSlice';
 import dashboardReducer from '../features/dashboard/dashboardSlice';
 import gamificationReducer from '../features/gamification/gamificationSlice';
 import habitReducer from '../features/habits/habitSlice';
+import hobbyReducer from '../features/hobbies/hobbySlice';
+import socialReducer from '../features/social/socialSlice';
 
 const store = configureStore({
   reducer: {
@@ -12,6 +14,8 @@ const store = configureStore({
     dashboard: dashboardReducer,
     gamification: gamificationReducer,
     habits: habitReducer,
+    hobbies: hobbyReducer,
+    social: socialReducer,
   },
 });
 

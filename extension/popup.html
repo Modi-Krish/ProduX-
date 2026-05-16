@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 340px;
+      font-family: 'Space Grotesk', sans-serif;
+      background: #FAF5FF;
+      color: #1A1625;
+      padding: 1.25rem;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .header h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+    }
+
+    .header span {
+      font-size: 1.5rem;
+    }
+
+    .status-bar {
+      padding: 0.75rem 1rem;
+      border: 2px solid #1A1625;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .status-bar.idle {
+      background: #F1F5F9;
+      color: #64748B;
+    }
+
+    .status-bar.active {
+      background: #D1FAE5;
+      color: #059669;
+    }
+
+    .status-bar.warning {
+      background: #FEE2E2;
+      color: #DC2626;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .form-group {
+      margin-bottom: 0.75rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      font-size: 0.8rem;
+      margin-bottom: 0.3rem;
+      color: #64748B;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      border: 2px solid #1A1625;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    input:focus {
+      border-color: #8B5CF6;
+      box-shadow: 3px 3px 0px #8B5CF6;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.7rem;
+      border: 2px solid #1A1625;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-start {
+      background: #8B5CF6;
+      color: white;
+      box-shadow: 4px 4px 0px #1A1625;
+    }
+
+    .btn-start:hover {
+      transform: translateY(-2px);
+      box-shadow: 6px 6px 0px #1A1625;
+    }
+
+    .btn-stop {
+      background: #EF4444;
+      color: white;
+      box-shadow: 4px 4px 0px #1A1625;
+    }
+
+    .btn-stop:hover {
+      transform: translateY(-2px);
+    }
+
+    .stats {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .stat-card {
+      flex: 1;
+      text-align: center;
+      padding: 0.6rem;
+      background: white;
+      border: 2px solid #E2E8F0;
+      border-radius: 8px;
+    }
+
+    .stat-num {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #8B5CF6;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      color: #94A3B8;
+      font-weight: 600;
+    }
+
+    .footer {
+      margin-top: 0.75rem;
+      text-align: center;
+      font-size: 0.7rem;
+      color: #94A3B8;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span>🛡️</span>
+    <h1>ProduX Focus Guard</h1>
+  </div>
+
+  <div id="status" class="status-bar idle">
+    Not monitoring
+  </div>
+
+  <div id="setup-section">
+    <div class="form-group">
+      <label>Website to focus on</label>
+      <input type="text" id="focusUrl" placeholder="e.g. github.com, figma.com" />
+    </div>
+
+    <div class="form-group">
+      <label>Focus duration</label>
+      <select id="duration">
+        <option value="15">15 minutes</option>
+        <option value="30" selected>30 minutes</option>
+        <option value="60">1 hour</option>
+        <option value="90">1.5 hours</option>
+        <option value="120">2 hours</option>
+      </select>
+    </div>
+
+    <button class="btn btn-start" id="startBtn">🚀 Start Monitoring</button>
+  </div>
+
+  <div id="active-section" style="display: none;">
+    <button class="btn btn-stop" id="stopBtn">⏹ Stop Monitoring</button>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-num" id="timeLeft">--</div>
+        <div class="stat-label">Mins Left</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="focusScore">100%</div>
+        <div class="stat-label">Focus Score</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="distractions">0</div>
+        <div class="stat-label">Distractions</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Part of the ProduX Productivity System</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

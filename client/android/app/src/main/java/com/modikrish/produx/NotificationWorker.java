@@ -29,8 +29,6 @@ public class NotificationWorker extends Worker {
     @Override
     public Result doWork() {
         try {
-            // Get user token stored by Capacitor Preferences in SharedPreferences
-            // Capacitor's default SharedPreferences is usually named "CapacitorStorage"
             Context context = getApplicationContext();
             SharedPreferences capStorage = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
             String token = capStorage.getString("token", null);
@@ -40,13 +38,13 @@ public class NotificationWorker extends Worker {
                 return Result.success();
             }
 
-            // Clean the token (Capacitor preferences sometimes wraps strings in double quotes)
+            // Clean the token (Capacitor wraps values in quotes in SharedPreferences)
             if (token.startsWith("\"") && token.endsWith("\"")) {
                 token = token.substring(1, token.length() - 1);
             }
 
-            // Poll the backend endpoint for pending friend requests
-            URL url = new URL("https://produx-orcin.vercel.app/api/social/friends");
+            // Poll our new unread summaries endpoint
+            URL url = new URL("https://produx-orcin.vercel.app/api/social/unread");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Authorization", "Bearer " + token);
@@ -67,12 +65,19 @@ public class NotificationWorker extends Worker {
                 JSONObject jsonObj = new JSONObject(response.toString());
                 if (jsonObj.getBoolean("success")) {
                     JSONObject data = jsonObj.getJSONObject("data");
-                    int pendingRequestsCount = data.getJSONArray("pending").length();
+                    int pendingFriendsCount = data.optInt("pendingFriendsCount", 0);
+                    int unreadMessagesCount = data.optInt("unreadMessagesCount", 0);
 
-                    // If there are pending requests, trigger the native system notification!
-                    if (pendingRequestsCount > 0) {
-                        String bodyText = "You have " + pendingRequestsCount + " pending friend request(s) waiting for you in ProduX!";
-                        triggerSystemNotification("New Activity in ProduX", bodyText);
+                    // 1. If there are new direct messages, trigger a native system notification!
+                    if (unreadMessagesCount > 0) {
+                        String bodyText = "You have " + unreadMessagesCount + " unread message(s) waiting in your private chats!";
+                        triggerSystemNotification("New Messages!", bodyText, 1002);
+                    }
+
+                    // 2. If there are pending requests, trigger a native system notification!
+                    if (pendingFriendsCount > 0) {
+                        String bodyText = "You have " + pendingFriendsCount + " pending friend request(s) waiting in ProduX!";
+                        triggerSystemNotification("New Friend Request!", bodyText, 1001);
                     }
                 }
             }
@@ -82,11 +87,11 @@ public class NotificationWorker extends Worker {
         return Result.success();
     }
 
-    private void triggerSystemNotification(String title, String body) {
+    private void triggerSystemNotification(String title, String body, int notificationId) {
         Context context = getApplicationContext();
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
-        // 1. Create Notification Channel for Android O+ (API 26+)
+        // Create Notification Channel for Android O+ (API 26+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
@@ -98,7 +103,7 @@ public class NotificationWorker extends Worker {
             notificationManager.createNotificationChannel(channel);
         }
 
-        // 2. Click Action: Open MainActivity
+        // Click Action: Open MainActivity
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         
@@ -114,7 +119,7 @@ public class NotificationWorker extends Worker {
                 flags
         );
 
-        // 3. Build Notification
+        // Build Notification
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher) // Use default launcher icon as notification icon
                 .setContentTitle(title)
@@ -123,7 +128,7 @@ public class NotificationWorker extends Worker {
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
 
-        // 4. Fire Notification
-        notificationManager.notify(4567, builder.build());
+        // Fire Notification using dynamic notificationId
+        notificationManager.notify(notificationId, builder.build());
     }
 }

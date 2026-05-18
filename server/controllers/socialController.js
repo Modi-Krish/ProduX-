@@ -561,6 +561,38 @@ const subscribePush = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get unread counts for background polling
+ * @route   GET /api/social/unread
+ */
+const getUnreadCount = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    // 1. Count pending friend requests
+    const pendingFriendsCount = await Friendship.countDocuments({
+      recipient: userId,
+      status: 'pending'
+    });
+
+    // 2. Count unread messages
+    const unreadMessagesCount = await Message.countDocuments({
+      receiverId: userId,
+      read: false
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        pendingFriendsCount,
+        unreadMessagesCount
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getLeaderboard,
   sendFriendRequest,
@@ -575,4 +607,5 @@ module.exports = {
   addGroupMember,
   findUserByCustomId,
   subscribePush,
+  getUnreadCount,
 };

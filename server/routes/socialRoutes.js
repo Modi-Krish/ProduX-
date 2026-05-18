@@ -13,6 +13,7 @@ const {
   getGroupMessages,
   addGroupMember,
   findUserByCustomId,
+  getUnreadCount,
 } = require('../controllers/socialController');
 const { protect } = require('../middlewares/auth');
 
@@ -25,6 +26,7 @@ router.get('/leaderboard', getLeaderboard);
 router.get('/friends', getFriends);
 router.post('/friends/request', sendFriendRequest);
 router.patch('/friends/:id', respondFriendRequest);
+router.get('/unread', getUnreadCount);
 
 // DM Chat
 router.post('/messages', sendMessage);

@@ -102,6 +102,7 @@
 ---
 
 ## 📈 Recent Updates
+- **[v1.6]** 💬 **Real-Time Group Chat & Room Management**: Resolved private chat socket refresh bugs, introduced named Productivity Teams (Group Creation), and deployed instant room-based Group Messaging.
 - **[v1.5]** 🧠 **Integrated Google Gemini AI**: Added RPG Quest Master subtask generator & Context-Aware Focus Coach distraction warning system.
 - **[v1.4]** 🚀 Added Real-time Chat and Friend system.
 - **[v1.3]** ⏰ Integrated Math-based alarm system for tasks.

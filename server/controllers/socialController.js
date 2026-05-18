@@ -424,6 +424,60 @@ const addGroupMember = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Find a user by unique customId
+ * @route   GET /api/social/users/:customId
+ */
+const findUserByCustomId = async (req, res, next) => {
+  try {
+    const customId = req.params.customId.trim().toUpperCase();
+    const currentUserId = req.user._id;
+
+    const user = await User.findOne({ customId }).select('name xp level streak totalTasksCompleted badges customId');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check relationship status to send with response
+    const friendship = await Friendship.findOne({
+      $or: [
+        { requester: currentUserId, recipient: user._id },
+        { requester: user._id, recipient: currentUserId },
+      ],
+    });
+
+    let relationship = 'none'; // 'none', 'pending_sent', 'pending_received', 'friends'
+    if (friendship) {
+      if (friendship.status === 'accepted') {
+        relationship = 'friends';
+      } else if (friendship.status === 'pending') {
+        if (friendship.requester.toString() === currentUserId.toString()) {
+          relationship = 'pending_sent';
+        } else {
+          relationship = 'pending_received';
+        }
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: user._id,
+        name: user.name,
+        customId: user.customId,
+        level: user.level,
+        xp: user.xp,
+        streak: user.streak,
+        badgeCount: user.badges?.length || 0,
+        relationship,
+        friendshipId: friendship ? friendship._id : null,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getLeaderboard,
   sendFriendRequest,
@@ -436,4 +490,5 @@ module.exports = {
   sendGroupMessage,
   getGroupMessages,
   addGroupMember,
+  findUserByCustomId,
 };

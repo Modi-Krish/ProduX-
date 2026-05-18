@@ -12,6 +12,7 @@ const {
   sendGroupMessage,
   getGroupMessages,
   addGroupMember,
+  findUserByCustomId,
 } = require('../controllers/socialController');
 const { protect } = require('../middlewares/auth');
 
@@ -35,5 +36,8 @@ router.get('/groups', getGroups);
 router.post('/groups/:id/messages', sendGroupMessage);
 router.get('/groups/:id/messages', getGroupMessages);
 router.post('/groups/:id/members', addGroupMember);
+
+// Find user by customId
+router.get('/users/:customId', findUserByCustomId);
 
 module.exports = router;

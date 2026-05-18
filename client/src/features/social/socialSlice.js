@@ -11,6 +11,8 @@ const initialState = {
   groups: [],
   activeGroup: null,
   groupMessages: [],
+  searchedUser: null,
+  searchError: null,
   isLoading: false,
   error: null,
 };
@@ -149,6 +151,18 @@ export const addGroupMember = createAsyncThunk(
   }
 );
 
+export const searchUser = createAsyncThunk(
+  'social/searchUser',
+  async (customId, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.searchUserById(customId);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'User not found');
+    }
+  }
+);
+
 const socialSlice = createSlice({
   name: 'social',
   initialState,
@@ -170,6 +184,10 @@ const socialSlice = createSlice({
     clearGroupChat: (state) => {
       state.activeGroup = null;
       state.groupMessages = [];
+    },
+    clearSearch: (state) => {
+      state.searchedUser = null;
+      state.searchError = null;
     },
     socketNewMessage: (state, action) => {
       const msg = action.payload;
@@ -253,6 +271,14 @@ const socialSlice = createSlice({
         if (state.activeGroup && state.activeGroup._id === updatedGroup._id) {
           state.activeGroup = updatedGroup;
         }
+      })
+      .addCase(searchUser.fulfilled, (state, action) => {
+        state.searchedUser = action.payload;
+        state.searchError = null;
+      })
+      .addCase(searchUser.rejected, (state, action) => {
+        state.searchedUser = null;
+        state.searchError = action.payload;
       });
   },
 });
@@ -262,6 +288,7 @@ export const {
   clearChat,
   setActiveGroup,
   clearGroupChat,
+  clearSearch,
   socketNewMessage,
   socketGroupMessage,
   socketFriendRequest,

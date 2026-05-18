@@ -23,6 +23,11 @@ const userSchema = new mongoose.Schema(
       minlength: [6, 'Password must be at least 6 characters'],
       select: false, // Don't return password by default
     },
+    customId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     // ── Gamification Fields ──
     xp: {
       type: Number,
@@ -67,6 +72,25 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Auto-generate customId if not present
+userSchema.pre('save', async function () {
+  if (!this.customId) {
+    let isUnique = false;
+    let generatedId = '';
+    const User = this.constructor;
+    
+    while (!isUnique) {
+      const randomNum = Math.floor(100000 + Math.random() * 900000);
+      generatedId = `PRDX-${randomNum}`;
+      const existing = await User.findOne({ customId: generatedId });
+      if (!existing) {
+        isUnique = true;
+      }
+    }
+    this.customId = generatedId;
+  }
+});
 
 // Hash password before saving
 userSchema.pre('save', async function () {

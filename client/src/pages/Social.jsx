@@ -16,6 +16,8 @@ import {
   setActiveGroup,
   clearGroupChat,
   addGroupMember,
+  searchUser,
+  clearSearch,
 } from '../features/social/socialSlice';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -36,7 +38,7 @@ import toast from 'react-hot-toast';
 
 const Social = () => {
   const dispatch = useDispatch();
-  const { leaderboard, friends, pendingRequests, messages, activeChatUser, groups, activeGroup, groupMessages, isLoading } =
+  const { leaderboard, friends, pendingRequests, messages, activeChatUser, groups, activeGroup, groupMessages, searchedUser, searchError, isLoading } =
     useSelector((state) => state.social);
   const { user } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState('leaderboard');
@@ -50,11 +52,17 @@ const Social = () => {
   // Chat view customization states
   const [isMaximized, setIsMaximized] = useState(false);
   const [showInviteDropdown, setShowInviteDropdown] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   
   const chatEndRef = useRef(null);
 
   // Connect socket so real-time messages work on this page
   useSocket();
+
+  useEffect(() => {
+    dispatch(clearSearch());
+    setSearchInput('');
+  }, [activeTab, dispatch]);
 
   useEffect(() => {
     dispatch(fetchLeaderboard());
@@ -143,6 +151,16 @@ const Social = () => {
       setShowInviteDropdown(false);
     } catch (err) {
       toast.error(err || 'Failed to add member');
+    }
+  };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchInput.trim()) return;
+    try {
+      await dispatch(searchUser(searchInput.trim())).unwrap();
+    } catch (err) {
+      toast.error(err || 'User not found');
     }
   };
 
@@ -260,6 +278,140 @@ const Social = () => {
         {/* ── FRIENDS TAB ── */}
         {activeTab === 'friends' && !activeChatUser && (
           <div className="friends-container">
+            {/* Unique ID Badge & Search Bar */}
+            <div className="search-friend-card" style={{
+              background: 'var(--card)',
+              border: '3px solid var(--fg)',
+              borderRadius: 'var(--radius-md)',
+              padding: '1.5rem',
+              boxShadow: 'var(--shadow-soft)',
+              marginBottom: '1.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1.1rem' }}>Find Friend by Unique ID</h4>
+                <div style={{
+                  background: 'var(--accent)',
+                  color: 'white',
+                  fontWeight: '800',
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-pill)',
+                  border: '2px solid var(--fg)',
+                  fontSize: '0.8rem',
+                  boxShadow: '2px 2px 0px var(--fg)',
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  navigator.clipboard.writeText(user?.customId);
+                  toast.success('Unique ID copied to clipboard!');
+                }}
+                title="Click to copy your unique ID"
+                >
+                  My ID: {user?.customId || 'PRDX-LOADING'} 📋
+                </div>
+              </div>
+              
+              <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="Enter friend's ID (e.g. PRDX-123456)"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem 1rem',
+                    border: '2px solid var(--fg)',
+                    borderRadius: 'var(--radius-pill)',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    outline: 'none',
+                    background: 'var(--bg)'
+                  }}
+                />
+                <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: 'var(--radius-pill)', border: '2px solid var(--fg)' }}>
+                  Search
+                </button>
+              </form>
+              
+              {/* Search Result */}
+              {searchedUser && (
+                <div className="search-result-card" style={{
+                  background: 'var(--muted)',
+                  border: '2px dashed var(--fg)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '1rem',
+                  marginTop: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{
+                      width: '45px',
+                      height: '45px',
+                      borderRadius: '50%',
+                      background: 'var(--tertiary)',
+                      color: 'var(--fg)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: '800',
+                      border: '2px solid var(--fg)'
+                    }}>
+                      {searchedUser.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontWeight: '800', fontSize: '1rem' }}>{searchedUser.name}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--muted-fg)' }}>
+                        Lv.{searchedUser.level} · {searchedUser.xp} XP · {searchedUser.customId}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Actions based on relationship status */}
+                  <div>
+                    {isSelf(searchedUser._id) ? (
+                      <span style={{ fontSize: '0.85rem', color: 'var(--muted-fg)', fontWeight: 'bold' }}>This is you! ✨</span>
+                    ) : searchedUser.relationship === 'friends' ? (
+                      <span style={{ fontSize: '0.85rem', color: 'var(--quaternary)', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        Friends ✔️
+                      </span>
+                    ) : searchedUser.relationship === 'pending_sent' ? (
+                      <span style={{ fontSize: '0.85rem', color: 'var(--secondary)', fontWeight: '800' }}>
+                        Request Pending ✉️
+                      </span>
+                    ) : searchedUser.relationship === 'pending_received' ? (
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ border: '2px solid var(--fg)', boxShadow: '2px 2px 0px var(--fg)' }}
+                        onClick={() => {
+                          handleRespondRequest(searchedUser.friendshipId, 'accepted');
+                          dispatch(clearSearch());
+                          setSearchInput('');
+                        }}
+                      >
+                        Accept Request
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn-primary btn-sm"
+                        style={{ border: '2px solid var(--fg)', boxShadow: '2px 2px 0px var(--fg)' }}
+                        onClick={() => {
+                          handleAddFriend(searchedUser._id);
+                          dispatch(clearSearch());
+                          setSearchInput('');
+                        }}
+                      >
+                        Add Friend
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Pending Requests */}
             {pendingRequests.length > 0 && (
               <div className="pending-section">

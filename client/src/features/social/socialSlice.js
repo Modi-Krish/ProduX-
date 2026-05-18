@@ -137,6 +137,18 @@ export const sendGroupChatMessage = createAsyncThunk(
   }
 );
 
+export const addGroupMember = createAsyncThunk(
+  'social/addGroupMember',
+  async ({ groupId, memberId }, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.addGroupMember(groupId, memberId);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to add group member');
+    }
+  }
+);
+
 const socialSlice = createSlice({
   name: 'social',
   initialState,
@@ -186,6 +198,13 @@ const socialSlice = createSlice({
       const exists = state.groups.some((g) => g._id === action.payload._id);
       if (!exists) state.groups.unshift(action.payload);
     },
+    socketGroupMemberAdded: (state, action) => {
+      const { groupId, group } = action.payload;
+      state.groups = state.groups.map((g) => (g._id === groupId ? group : g));
+      if (state.activeGroup && state.activeGroup._id === groupId) {
+        state.activeGroup = group;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -227,6 +246,13 @@ const socialSlice = createSlice({
       .addCase(sendGroupChatMessage.fulfilled, (state, action) => {
         const exists = state.groupMessages.some((m) => m._id === action.payload._id);
         if (!exists) state.groupMessages.push(action.payload);
+      })
+      .addCase(addGroupMember.fulfilled, (state, action) => {
+        const updatedGroup = action.payload;
+        state.groups = state.groups.map((g) => (g._id === updatedGroup._id ? updatedGroup : g));
+        if (state.activeGroup && state.activeGroup._id === updatedGroup._id) {
+          state.activeGroup = updatedGroup;
+        }
       });
   },
 });
@@ -240,5 +266,6 @@ export const {
   socketGroupMessage,
   socketFriendRequest,
   socketGroupCreated,
+  socketGroupMemberAdded,
 } = socialSlice.actions;
 export default socialSlice.reducer;

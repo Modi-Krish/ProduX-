@@ -360,6 +360,70 @@ const getGroupMessages = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Add a member to an existing group
+ * @route   POST /api/social/groups/:id/members
+ */
+const addGroupMember = async (req, res, next) => {
+  try {
+    const { memberId } = req.body;
+    const groupId = req.params.id;
+    const userId = req.user._id;
+
+    if (!memberId) {
+      return res.status(400).json({ success: false, message: 'Member ID is required' });
+    }
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+
+    // Verify requesting user is a member
+    if (!group.members.some((m) => m.toString() === userId.toString())) {
+      return res.status(403).json({ success: false, message: 'Not authorized to add members to this group' });
+    }
+
+    // Verify member is not already in the group
+    if (group.members.some((m) => m.toString() === memberId.toString())) {
+      return res.status(400).json({ success: false, message: 'User is already a member of this group' });
+    }
+
+    // Add member
+    group.members.push(memberId);
+    await group.save();
+
+    const populated = await Group.findById(groupId)
+      .populate('members', 'name xp level')
+      .populate('creator', 'name');
+
+    // Socket: Join the new member's active sockets to the room and notify
+    const io = req.app.get('io');
+    if (io) {
+      const sockets = io.sockets.adapter.rooms.get(memberId.toString());
+      if (sockets) {
+        sockets.forEach((socketId) => {
+          io.sockets.sockets.get(socketId)?.join(`group:${groupId}`);
+        });
+      }
+      
+      // Notify the added member of the new group in real-time
+      io.to(memberId.toString()).emit('group_created', populated);
+      
+      // Notify existing group members of the new addition
+      io.to(`group:${groupId}`).emit('group_member_added', {
+        groupId,
+        group: populated,
+        addedMemberId: memberId,
+      });
+    }
+
+    res.status(200).json({ success: true, data: populated });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getLeaderboard,
   sendFriendRequest,
@@ -371,4 +435,5 @@ module.exports = {
   getGroups,
   sendGroupMessage,
   getGroupMessages,
+  addGroupMember,
 };

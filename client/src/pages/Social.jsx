@@ -15,6 +15,7 @@ import {
   sendGroupChatMessage,
   setActiveGroup,
   clearGroupChat,
+  addGroupMember,
 } from '../features/social/socialSlice';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -45,6 +46,10 @@ const Social = () => {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState([]);
+
+  // Chat view customization states
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [showInviteDropdown, setShowInviteDropdown] = useState(false);
   
   const chatEndRef = useRef(null);
 
@@ -128,6 +133,16 @@ const Social = () => {
       dispatch(fetchGroups());
     } catch (err) {
       toast.error(err || 'Failed to create group');
+    }
+  };
+
+  const handleAddMemberToGroup = async (friendId) => {
+    try {
+      await dispatch(addGroupMember({ groupId: activeGroup._id, memberId: friendId })).unwrap();
+      toast.success('Member added successfully!');
+      setShowInviteDropdown(false);
+    } catch (err) {
+      toast.error(err || 'Failed to add member');
     }
   };
 
@@ -304,9 +319,9 @@ const Social = () => {
 
         {/* ── CHAT VIEW ── */}
         {activeTab === 'friends' && activeChatUser && (
-          <div className="chat-container">
+          <div className={`chat-container ${isMaximized ? 'chat-maximized' : ''}`}>
             <div className="chat-header">
-              <button className="btn-ghost" onClick={() => dispatch(clearChat())}>
+              <button className="btn-ghost" onClick={() => { dispatch(clearChat()); setIsMaximized(false); }}>
                 <HiChevronLeft />
               </button>
               <div className="chat-user-avatar">{activeChatUser.name.charAt(0).toUpperCase()}</div>
@@ -314,6 +329,15 @@ const Social = () => {
                 <span className="chat-user-name">{activeChatUser.name}</span>
                 <span className="chat-user-level">Lv.{activeChatUser.level}</span>
               </div>
+              <div style={{ flex: 1 }} />
+              <button
+                className="btn-ghost"
+                onClick={() => setIsMaximized(!isMaximized)}
+                style={{ fontSize: '1.25rem', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title={isMaximized ? 'Minimize' : 'Maximize'}
+              >
+                {isMaximized ? '🗗' : '🗖'}
+              </button>
             </div>
 
             <div className="chat-messages">
@@ -454,9 +478,9 @@ const Social = () => {
 
         {/* ── GROUP CHAT VIEW ── */}
         {activeTab === 'groups' && activeGroup && (
-          <div className="chat-container">
-            <div className="chat-header">
-              <button className="btn-ghost" onClick={() => dispatch(clearGroupChat())}>
+          <div className={`chat-container ${isMaximized ? 'chat-maximized' : ''}`}>
+            <div className="chat-header" style={{ position: 'relative' }}>
+              <button className="btn-ghost" onClick={() => { dispatch(clearGroupChat()); setIsMaximized(false); setShowInviteDropdown(false); }}>
                 <HiChevronLeft />
               </button>
               <div className="chat-user-avatar" style={{ background: 'var(--accent)', color: 'white' }}>{activeGroup.name.charAt(0).toUpperCase()}</div>
@@ -464,6 +488,66 @@ const Social = () => {
                 <span className="chat-user-name">{activeGroup.name}</span>
                 <span className="chat-user-level" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{activeGroup.members.length} members</span>
               </div>
+              
+              <div style={{ flex: 1 }} />
+              
+              {/* Add Member Option */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  style={{ marginRight: '8px', padding: '4px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', border: '1.5px solid var(--border)' }}
+                  onClick={() => setShowInviteDropdown(!showInviteDropdown)}
+                >
+                  + Add Friend
+                </button>
+                
+                {showInviteDropdown && (
+                  <div className="invite-dropdown" style={{
+                    position: 'absolute',
+                    top: '110%',
+                    right: '8px',
+                    zIndex: 1100,
+                    background: 'var(--card)',
+                    border: '2px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    padding: '0.5rem',
+                    width: '210px',
+                    boxShadow: 'var(--shadow)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', display: 'block', marginBottom: '4px', borderBottom: '2px solid var(--border)', paddingBottom: '4px', color: 'var(--text-primary)' }}>Invite Friends</span>
+                    {friends.filter(f => !activeGroup.members.some(m => m._id === f._id)).length === 0 ? (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '4px' }}>All friends are already members</span>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '160px', overflowY: 'auto' }}>
+                        {friends.filter(f => !activeGroup.members.some(m => m._id === f._id)).map((friend) => (
+                          <button
+                            key={friend._id}
+                            className="btn-chat"
+                            style={{ width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '6px', background: 'var(--bg-secondary)', border: '1.5px solid var(--border)' }}
+                            onClick={() => handleAddMemberToGroup(friend._id)}
+                          >
+                            <span style={{ fontWeight: '500' }}>{friend.name}</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Lv.{friend.level}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Maximize Toggle */}
+              <button
+                className="btn-ghost"
+                onClick={() => setIsMaximized(!isMaximized)}
+                style={{ fontSize: '1.25rem', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title={isMaximized ? 'Minimize' : 'Maximize'}
+              >
+                {isMaximized ? '🗗' : '🗖'}
+              </button>
             </div>
 
             <div className="chat-messages">

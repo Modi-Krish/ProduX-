@@ -13,6 +13,7 @@ import {
   socketGroupMessage,
   socketFriendRequest,
   socketGroupCreated,
+  socketGroupMemberAdded,
 } from '../features/social/socialSlice';
 import { getDashboard } from '../features/dashboard/dashboardSlice';
 import { applyGamificationUpdate } from '../features/gamification/gamificationSlice';
@@ -77,6 +78,10 @@ const useSocket = () => {
       dispatch(socketGroupCreated(group));
     });
 
+    socket.on('group_member_added', (data) => {
+      dispatch(socketGroupMemberAdded(data));
+    });
+
     return () => {
       socket.off('task_created');
       socket.off('task_updated');
@@ -88,6 +93,7 @@ const useSocket = () => {
       socket.off('friend_request');
       socket.off('group_message');
       socket.off('group_created');
+      socket.off('group_member_added');
       disconnectSocket();
     };
   }, [token, dispatch]);

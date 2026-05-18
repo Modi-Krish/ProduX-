@@ -11,6 +11,7 @@ const {
   getGroups,
   sendGroupMessage,
   getGroupMessages,
+  addGroupMember,
 } = require('../controllers/socialController');
 const { protect } = require('../middlewares/auth');
 
@@ -33,5 +34,6 @@ router.post('/groups', createGroup);
 router.get('/groups', getGroups);
 router.post('/groups/:id/messages', sendGroupMessage);
 router.get('/groups/:id/messages', getGroupMessages);
+router.post('/groups/:id/members', addGroupMember);
 
 module.exports = router;

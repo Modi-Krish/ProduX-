@@ -2487,3 +2487,39 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
 }
+
+/* Maximized Chat Styles */
+.chat-container.chat-maximized {
+  position: fixed !important;
+  top: 1rem !important;
+  left: 1rem !important;
+  right: 1rem !important;
+  bottom: 1rem !important;
+  width: calc(100vw - 2rem) !important;
+  height: calc(100vh - 2rem) !important;
+  max-height: none !important;
+  z-index: 10000 !important;
+  background: var(--card) !important;
+  box-shadow: 0px 10px 50px rgba(0, 0, 0, 0.3) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border: 3px solid var(--fg) !important;
+  border-radius: var(--radius-md) !important;
+  animation: popUp var(--transition);
+}
+
+@keyframes popUp {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.chat-container.chat-maximized .chat-messages {
+  max-height: none !important;
+  flex: 1 !important;
+}

@@ -12,3 +12,5 @@ export const createGroup = (name, memberIds) => API.post('/social/groups', { nam
 export const fetchGroups = () => API.get('/social/groups');
 export const sendGroupMessage = (groupId, text) => API.post(`/social/groups/${groupId}/messages`, { text });
 export const fetchGroupMessages = (groupId) => API.get(`/social/groups/${groupId}/messages`);
+export const addGroupMember = (groupId, memberId) => API.post(`/social/groups/${groupId}/members`, { memberId });
+

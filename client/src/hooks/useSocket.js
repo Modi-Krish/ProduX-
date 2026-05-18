@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import toast from 'react-hot-toast';
+import store from '../app/store';
 import { connectSocket, disconnectSocket, getSocket } from '../api/socket';
 import {
   socketTaskCreated,
@@ -63,15 +65,45 @@ const useSocket = () => {
     // Social events — DM
     socket.on('new_message', (msg) => {
       dispatch(socketNewMessage(msg));
+      
+      const state = store.getState();
+      const currentUser = state.auth.user;
+      const { activeChatUser } = state.social;
+      
+      // Notify if message is not from current user and we aren't currently viewing this chat
+      if (currentUser && msg.senderId._id !== currentUser._id) {
+        if (!activeChatUser || activeChatUser._id !== msg.senderId._id) {
+          toast(`New message from ${msg.senderId.name}`, { icon: '💬' });
+        }
+      }
     });
 
     socket.on('friend_request', (data) => {
       dispatch(socketFriendRequest(data));
+      
+      const state = store.getState();
+      const currentUser = state.auth.user;
+      if (currentUser && data.senderId !== currentUser._id) {
+        toast(`New friend request from ${data.name || 'someone'}`, { icon: '👋' });
+      }
     });
 
     // Social events — Group
     socket.on('group_message', (msg) => {
       dispatch(socketGroupMessage(msg));
+      
+      const state = store.getState();
+      const currentUser = state.auth.user;
+      const { groups, activeGroup } = state.social;
+      
+      // Notify if message is not from current user and we aren't currently viewing this group
+      if (currentUser && msg.senderId._id !== currentUser._id) {
+        if (!activeGroup || activeGroup._id !== msg.groupId) {
+          const group = groups.find(g => g._id === msg.groupId);
+          const groupName = group ? group.name : 'a group';
+          toast(`New message in ${groupName} from ${msg.senderId.name}`, { icon: '💬' });
+        }
+      }
     });
 
     socket.on('group_created', (group) => {

@@ -1,0 +1,5 @@
+# Ignore native Android files to prevent locked files error and speed up uploads
+client/android/
+client/node_modules/
+node_modules/
+.git/

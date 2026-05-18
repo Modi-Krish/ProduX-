@@ -146,6 +146,12 @@ const authSlice = createSlice({
           totalTasksCompleted: action.payload.totalTasksCompleted || 0,
           badges: action.payload.badges || [],
         };
+      })
+      .addCase(fetchCurrentUser.rejected, (state) => {
+        state.user = null;
+        state.token = null;
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
       });
   },
 });

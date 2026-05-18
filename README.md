@@ -1,115 +1,113 @@
-# ProduX ⚡
-### *The Ultimate Gamified Social Productivity Suite*
+<div align="center">
+  <img src="client/public/favicon.svg" alt="ProduX Logo" width="120" />
 
-**Live App: [https://produx-orcin.vercel.app](https://produx-orcin.vercel.app)**
+  # 🚀 ProduX
 
-**ProduX** is not just a task manager; it's a social productivity ecosystem designed to turn your work into an adventure. Built with a bold **Playful Geometric** aesthetic, ProduX combines professional task management with RPG-style gamification, real-time social interactions, and active focus protection.
+  **The Ultimate Real-Time Productivity & Social Management System**
 
-<img width="1894" height="942" alt="image" src="https://github.com/user-attachments/assets/03cac4e5-9485-4a27-a433-e933b631ad7a" />
+  [![React](https://img.shields.io/badge/React-19.0-blue.svg?style=for-the-badge&logo=react)](https://reactjs.org/)
+  [![Node.js](https://img.shields.io/badge/Node.js-Express-green.svg?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
+  [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
+  [![Capacitor](https://img.shields.io/badge/Capacitor-Android-1192FA.svg?style=for-the-badge&logo=capacitor)](https://capacitorjs.com/)
+  [![Socket.io](https://img.shields.io/badge/Socket.io-Real--Time-black.svg?style=for-the-badge&logo=socketdotio)](https://socket.io/)
 
-
----
-
-## ✨ Core Pillars
-
-### 1. 📋 RPG Task Management
-*   **Dynamic Workflows**: Create, track, and manage tasks with priority-based sorting.
-*   **🧙‍♂️ Quest Master (AI)**: Instantly generate a custom RPG-style quest line of subtasks for any goal using Google Gemini AI!
-*   **Subtask Mastery**: Break down big goals into manageable steps with progress tracking.
-*   **Task Cycles**: Support for One-off tasks, Daily habits, and Weekly routines.
-*   **Real-Time Sync**: Powered by Socket.io, your workspace updates instantly across all devices.
-
-### 2. 🎮 Gamification & Progression
-*   **XP & Leveling System**: Earn experience points for every task completed. Level up to show off your productivity prowess.
-*   **Achievements & Badges**: Unlock 15+ unique badges (e.g., "Night Owl", "Streak King", "Subtask Slayer").
-*   **Milestone Rewards**: Visual feedback and confetti for reaching new heights.
-
-### 3. 🏆 21-Day Hobby Challenges
-*   **Habit Architect**: Transform tasks into long-term habits with the integrated 21-day tracker.
-*   **Phase-Based Progress**: Tasks evolve through "Genesis", "Growth", and "Mastery" phases.
-*   **Interactive Progress Board**: Visualize your journey with a dedicated inline calendar and milestone markers.
-
-### 4. 🌐 Social & Community
-*   **Global Leaderboard**: Compete with users worldwide for the top spot based on total XP.
-*   **Friendship System**: Connect with peers, send requests, and build your productivity circle.
-*   **Real-Time Chat**: 1-on-1 private messaging to collaborate or compete with friends.
-
-### 5. 🚨 Focus & Accountability
-*   **Math-to-Dismiss Alarms**: Set alarms for critical tasks. To stop the sound, you must solve a random mathematical problem—no more accidental snoozing!
-*   **🛡️ ProduX Focus Guard**: A companion Chrome Extension that monitors your browser. It ensures you stay on your designated work site and sends desktop notifications if you get distracted.
-*   **🧠 AI Focus Coach**: Distraction alerts are context-aware! If you wander off-focus, our Gemini AI generates a custom, sassy, or motivational RPG alert tailored to exactly what you are wasting time on.
+  [View Live Demo](https://produx-orcin.vercel.app) • [Report Bug](#) • [Request Feature](#)
+</div>
 
 ---
+
+## 📖 Overview
+
+**ProduX** is a production-grade, gamified productivity tracking system built with the MERN stack. It bridges the gap between personal task management and social accountability. Featuring real-time WebSockets, native Android background services, and a sleek glassmorphic UI, ProduX redefines how teams and individuals track habits and execute tasks.
+
+## ✨ Features
+
+- **⚡ Real-Time Synchronization**: Instant task updates and chat messages powered by Socket.io.
+- **📱 Native Mobile Application**: Fully integrated Android wrapper using Capacitor, featuring native Foreground Services and OS-level push notifications without Firebase.
+- **🎮 Gamification Engine**: Earn XP, level up, maintain streaks, and unlock unique badges to stay motivated.
+- **🤝 Social Accountability**: Send friend requests, create groups, and chat securely in real-time.
+- **🔒 Enterprise Security**: JWT-based authentication, robust CORS policies, and secure MongoDB queries.
+- **🎨 Modern Glassmorphic UI**: Built with React, Tailwind/CSS, and Framer Motion for buttery-smooth micro-animations.
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18, Vite, Redux Toolkit (State), Socket.io Client, React Icons.
-- **Backend**: Node.js, Express.js, Socket.io (Real-time).
-- **Database**: MongoDB Atlas (Mongoose ODM).
-- **Authentication**: JWT (JSON Web Tokens) with Secure HTTP-only cookies.
-- **Deployment**: Vercel (Production Build).
-
----
+| Category | Technologies |
+| --- | --- |
+| **Frontend** | React 19, Vite, Redux Toolkit, Framer Motion, React Router |
+| **Backend** | Node.js, Express.js, Socket.io, JWT |
+| **Database** | MongoDB Atlas, Mongoose |
+| **Mobile Native** | Capacitor Core, Android WorkManager, Java Foreground Services |
+| **Deployment** | Vercel (Frontend & Serverless Backend) |
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- MongoDB instance (Atlas or Local)
-- Chrome Browser (for Extension)
+- Node.js (v18+ recommended)
+- MongoDB Atlas URI
+- Android Studio (for mobile compilation)
 
-### Installation
+### 1. Clone the repository
+```bash
+git clone https://github.com/Modi-Krish/ProduX-.git
+cd ProduX-
+```
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Modi-Krish/ProduX-.git
-   cd ProduX-
-   ```
+### 2. Install Dependencies
+**Backend:**
+```bash
+npm install
+```
+**Frontend:**
+```bash
+cd client
+npm install
+```
 
-2. **Install Root & Sub-project dependencies:**
-   ```bash
-   npm install
-   cd client && npm install
-   cd ../server && npm install
-   ```
+### 3. Environment Setup
+Create a `.env` file in the root directory:
+```env
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_super_secret_key
+PORT=5000
+```
+Create a `.env` file in the `client` directory:
+```env
+VITE_API_URL=http://localhost:5000
+```
 
-3. **Environment Setup:**
-   Create a `.env` file in the root directory:
-   ```env
-   PORT=5000
-   MONGO_URI=your_mongodb_connection_string
-   JWT_SECRET=your_super_secret_key
-   CLIENT_URL=http://localhost:5173
-   ```
+### 4. Run the Application
+Start both frontend and backend concurrently from the root directory:
+```bash
+npm run dev
+```
 
-4. **Run the development suite:**
-   From the root directory:
-   ```bash
-   npm run dev
-   ```
+### 5. Build for Android
+```bash
+npm run android:build
+npm run android:open
+```
+
+## 📱 Mobile Architecture
+
+ProduX utilizes a cutting-edge hybrid architecture:
+- **No-Firebase Notifications**: Uses Android Jetpack `WorkManager` and `ForegroundService` written in pure Java to poll and dispatch system tray notifications instantly.
+- **Token Mirroring**: Implements `@capacitor/preferences` to securely mirror JWTs from Web LevelDB to Native SharedPreferences, ensuring the Java runtime has access to authenticated sessions even when the app is killed.
+
+## 🤝 Contributing
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
-
-## 🛡️ Installing Focus Guard (Chrome Extension)
-
-1. Download the `ProduX-FocusGuard.zip` from the Dashboard bottom banner.
-2. Unzip the folder.
-3. Open Chrome and navigate to `chrome://extensions/`.
-4. Enable **Developer Mode** (top right).
-5. Click **Load unpacked** and select the extension folder.
-6. Pin ProduX Focus Guard and start your first focus session!
-
----
-
-## 📈 Recent Updates
-- **[v1.6]** 💬 **Real-Time Group Chat & Room Management**: Resolved private chat socket refresh bugs, introduced named Productivity Teams (Group Creation), and deployed instant room-based Group Messaging.
-- **[v1.5]** 🧠 **Integrated Google Gemini AI**: Added RPG Quest Master subtask generator & Context-Aware Focus Coach distraction warning system.
-- **[v1.4]** 🚀 Added Real-time Chat and Friend system.
-- **[v1.3]** ⏰ Integrated Math-based alarm system for tasks.
-- **[v1.2]** 🏆 Launched 21-Day Hobby Challenges with interactive boards.
-- **[v1.1]** 🛡️ Released ProduX Focus Guard Chrome Extension.
-- **[v1.0]** 🎉 Initial release with Dashboard, Tasks, and Gamification.
-
----
-
-*Developed by Modi Krish as a state-of-the-art productivity ecosystem.*
+<div align="center">
+  <i>Architected with precision for optimal performance and user experience.</i>
+</div>

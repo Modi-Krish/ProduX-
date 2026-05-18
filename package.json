@@ -9,7 +9,9 @@
     "server": "cd server && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "build": "cd client && npm install && npm run build",
-    "start": "cd server && npm install && node server.js"
+    "start": "cd server && npm install && node server.js",
+    "android:build": "cd client && npm run build && npx cap sync",
+    "android:open": "cd client && npx cap open android"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

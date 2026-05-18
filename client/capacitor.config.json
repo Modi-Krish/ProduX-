@@ -1,0 +1,9 @@
+{
+  "appId": "com.modikrish.produx",
+  "appName": "ProduX",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}

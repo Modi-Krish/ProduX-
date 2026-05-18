@@ -26,10 +26,21 @@ const aiRoutes = require('./routes/aiRoutes');
 const app = express();
 const server = http.createServer(app);
 
+// Setup allowed origins for Web and Mobile Capacitor clients
+const allowedOrigins = [
+  'http://localhost:5173',   // Vite local development
+  'http://localhost',        // Android Capacitor default
+  'https://localhost',       // Secure context mobile webview
+  'capacitor://localhost'    // iOS Capacitor default
+];
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+}
+
 // Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   },
 });
@@ -42,7 +53,7 @@ initializeSocket(io);
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: allowedOrigins,
   credentials: true,
 }));
 app.use(express.json());

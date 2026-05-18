@@ -20,6 +20,8 @@ import {
 import { getDashboard } from '../features/dashboard/dashboardSlice';
 import { applyGamificationUpdate } from '../features/gamification/gamificationSlice';
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 // API base URL for axios requests
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -41,9 +43,40 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 /**
- * Helper to send native browser push notifications when the app is in the background
+ * Helper to send native browser or mobile system drawer notifications
  */
-const sendNativeNotification = (title, body) => {
+const sendNativeNotification = async (title, body) => {
+  // If running on a native mobile platform (Android/iOS)
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const permStatus = await LocalNotifications.checkPermissions();
+      let isGranted = permStatus.display === 'granted';
+      
+      if (!isGranted) {
+        const reqStatus = await LocalNotifications.requestPermissions();
+        isGranted = reqStatus.display === 'granted';
+      }
+      
+      if (isGranted) {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              title,
+              body,
+              id: Math.floor(Math.random() * 1000000),
+              sound: 'default',
+              actionTypeId: 'chat_msg',
+            }
+          ]
+        });
+      }
+    } catch (err) {
+      console.error('Failed to trigger native local notification:', err);
+    }
+    return;
+  }
+
+  // Fallback for standard desktop/mobile browsers
   if (!('Notification' in window)) return;
   if (Notification.permission === 'granted' && document.visibilityState === 'hidden') {
     if ('serviceWorker' in navigator) {

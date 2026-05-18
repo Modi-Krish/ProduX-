@@ -1939,6 +1939,7 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
 /* Tabs */
 .social-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 2rem;
 }
@@ -2454,12 +2455,42 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
 
 /* Social responsive */
 @media (max-width: 768px) {
-  .social-page { padding: 1.5rem; }
+  .social-page { padding: 1rem; }
   .podium { flex-direction: column; align-items: center; }
   .podium-card.rank-1 { order: 1; transform: none; }
   .podium-card.rank-2 { order: 2; }
   .podium-card.rank-3 { order: 3; }
   .nav-label { display: none; }
+
+  .social-tab {
+    flex: 1 1 calc(50% - 0.5rem);
+    justify-content: center;
+    font-size: 0.85rem;
+    padding: 0.6rem;
+  }
+  .pending-card, .friend-card, .search-result-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pending-actions, .friend-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+  }
+  .lb-row {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+  .lb-rank {
+    min-width: 24px;
+    font-size: 0.85rem;
+  }
+  .lb-name {
+    font-size: 0.85rem;
+  }
+  .groups-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Group Chat Styles */

@@ -371,7 +371,7 @@ const Social = () => {
                   </div>
                   
                   {/* Actions based on relationship status */}
-                  <div>
+                  <div className="search-result-actions" style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
                     {isSelf(searchedUser._id) ? (
                       <span style={{ fontSize: '0.85rem', color: 'var(--muted-fg)', fontWeight: 'bold' }}>This is you! ✨</span>
                     ) : searchedUser.relationship === 'friends' ? (

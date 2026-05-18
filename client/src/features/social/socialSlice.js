@@ -7,6 +7,10 @@ const initialState = {
   pendingRequests: [],
   messages: [],
   activeChatUser: null,
+  // Group state
+  groups: [],
+  activeGroup: null,
+  groupMessages: [],
   isLoading: false,
   error: null,
 };
@@ -83,20 +87,81 @@ export const sendChatMessage = createAsyncThunk(
   }
 );
 
+// ─── GROUP THUNKS ───────────────────────────────────────
+
+export const fetchGroups = createAsyncThunk(
+  'social/fetchGroups',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.fetchGroups();
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch groups');
+    }
+  }
+);
+
+export const createGroup = createAsyncThunk(
+  'social/createGroup',
+  async ({ name, memberIds }, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.createGroup(name, memberIds);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to create group');
+    }
+  }
+);
+
+export const fetchGroupChatMessages = createAsyncThunk(
+  'social/fetchGroupMessages',
+  async (groupId, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.fetchGroupMessages(groupId);
+      return { groupId, messages: res.data.data };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch group messages');
+    }
+  }
+);
+
+export const sendGroupChatMessage = createAsyncThunk(
+  'social/sendGroupMessage',
+  async ({ groupId, text }, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.sendGroupMessage(groupId, text);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to send group message');
+    }
+  }
+);
+
 const socialSlice = createSlice({
   name: 'social',
   initialState,
   reducers: {
     setActiveChatUser: (state, action) => {
       state.activeChatUser = action.payload;
+      state.activeGroup = null;
+      state.groupMessages = [];
     },
     clearChat: (state) => {
       state.activeChatUser = null;
       state.messages = [];
     },
+    setActiveGroup: (state, action) => {
+      state.activeGroup = action.payload;
+      state.activeChatUser = null;
+      state.messages = [];
+    },
+    clearGroupChat: (state) => {
+      state.activeGroup = null;
+      state.groupMessages = [];
+    },
     socketNewMessage: (state, action) => {
       const msg = action.payload;
-      // Only add if relevant to current chat
+      // Only add if relevant to current DM chat
       if (
         state.activeChatUser &&
         (msg.senderId?._id === state.activeChatUser._id ||
@@ -106,8 +171,20 @@ const socialSlice = createSlice({
         if (!exists) state.messages.push(msg);
       }
     },
+    socketGroupMessage: (state, action) => {
+      const msg = action.payload;
+      // Only add if relevant to the currently open group chat
+      if (state.activeGroup && msg.groupId === state.activeGroup._id) {
+        const exists = state.groupMessages.some((m) => m._id === msg._id);
+        if (!exists) state.groupMessages.push(msg);
+      }
+    },
     socketFriendRequest: (state, action) => {
       state.pendingRequests.push(action.payload.from);
+    },
+    socketGroupCreated: (state, action) => {
+      const exists = state.groups.some((g) => g._id === action.payload._id);
+      if (!exists) state.groups.unshift(action.payload);
     },
   },
   extraReducers: (builder) => {
@@ -129,9 +206,6 @@ const socialSlice = createSlice({
         state.pendingRequests = state.pendingRequests.filter(
           (r) => r.friendshipId !== action.payload._id
         );
-        if (action.payload.respondedStatus === 'accepted') {
-          // Will refresh via fetchFriends
-        }
       })
       .addCase(fetchChatMessages.fulfilled, (state, action) => {
         state.messages = action.payload.messages;
@@ -139,9 +213,32 @@ const socialSlice = createSlice({
       .addCase(sendChatMessage.fulfilled, (state, action) => {
         const exists = state.messages.some((m) => m._id === action.payload._id);
         if (!exists) state.messages.push(action.payload);
+      })
+      // Groups
+      .addCase(fetchGroups.fulfilled, (state, action) => {
+        state.groups = action.payload;
+      })
+      .addCase(createGroup.fulfilled, (state, action) => {
+        state.groups.unshift(action.payload);
+      })
+      .addCase(fetchGroupChatMessages.fulfilled, (state, action) => {
+        state.groupMessages = action.payload.messages;
+      })
+      .addCase(sendGroupChatMessage.fulfilled, (state, action) => {
+        const exists = state.groupMessages.some((m) => m._id === action.payload._id);
+        if (!exists) state.groupMessages.push(action.payload);
       });
   },
 });
 
-export const { setActiveChatUser, clearChat, socketNewMessage, socketFriendRequest } = socialSlice.actions;
+export const {
+  setActiveChatUser,
+  clearChat,
+  setActiveGroup,
+  clearGroupChat,
+  socketNewMessage,
+  socketGroupMessage,
+  socketFriendRequest,
+  socketGroupCreated,
+} = socialSlice.actions;
 export default socialSlice.reducer;

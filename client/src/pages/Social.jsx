@@ -9,9 +9,16 @@ import {
   sendChatMessage,
   setActiveChatUser,
   clearChat,
+  fetchGroups,
+  createGroup,
+  fetchGroupChatMessages,
+  sendGroupChatMessage,
+  setActiveGroup,
+  clearGroupChat,
 } from '../features/social/socialSlice';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import useSocket from '../hooks/useSocket';
 import {
   HiUserAdd,
   HiCheck,
@@ -28,12 +35,21 @@ import toast from 'react-hot-toast';
 
 const Social = () => {
   const dispatch = useDispatch();
-  const { leaderboard, friends, pendingRequests, messages, activeChatUser, isLoading } =
+  const { leaderboard, friends, pendingRequests, messages, activeChatUser, groups, activeGroup, groupMessages, isLoading } =
     useSelector((state) => state.social);
   const { user } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState('leaderboard');
   const [chatText, setChatText] = useState('');
+  
+  // Group creation modal state
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  
   const chatEndRef = useRef(null);
+
+  // Connect socket so real-time messages work on this page
+  useSocket();
 
   useEffect(() => {
     dispatch(fetchLeaderboard());
@@ -42,7 +58,7 @@ const Social = () => {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, groupMessages]);
 
   const handleAddFriend = async (recipientId) => {
     try {
@@ -68,6 +84,11 @@ const Social = () => {
     dispatch(fetchChatMessages(friendUser._id));
   };
 
+  const openGroupChat = (group) => {
+    dispatch(setActiveGroup(group));
+    dispatch(fetchGroupChatMessages(group._id));
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!chatText.trim() || !activeChatUser) return;
@@ -77,6 +98,45 @@ const Social = () => {
     } catch (err) {
       toast.error(err || 'Failed to send');
     }
+  };
+
+  const handleSendGroupMessage = async (e) => {
+    e.preventDefault();
+    if (!chatText.trim() || !activeGroup) return;
+    try {
+      await dispatch(sendGroupChatMessage({ groupId: activeGroup._id, text: chatText })).unwrap();
+      setChatText('');
+    } catch (err) {
+      toast.error(err || 'Failed to send');
+    }
+  };
+
+  const handleCreateGroup = async (e) => {
+    e.preventDefault();
+    if (!groupName.trim()) {
+      return toast.error('Group name is required');
+    }
+    if (selectedMembers.length === 0) {
+      return toast.error('Select at least one friend');
+    }
+    try {
+      await dispatch(createGroup({ name: groupName, memberIds: selectedMembers })).unwrap();
+      toast.success('Group created successfully!');
+      setGroupName('');
+      setSelectedMembers([]);
+      setShowCreateGroup(false);
+      dispatch(fetchGroups());
+    } catch (err) {
+      toast.error(err || 'Failed to create group');
+    }
+  };
+
+  const toggleMemberSelection = (friendId) => {
+    setSelectedMembers((prev) =>
+      prev.includes(friendId)
+        ? prev.filter((id) => id !== friendId)
+        : [...prev, friendId]
+    );
   };
 
   const isSelf = (id) => user?._id === id;
@@ -110,12 +170,23 @@ const Social = () => {
           </button>
           <button
             className={`social-tab ${activeTab === 'friends' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('friends'); dispatch(clearChat()); }}
+            onClick={() => { setActiveTab('friends'); dispatch(clearChat()); dispatch(clearGroupChat()); }}
           >
             <HiUsers /> Friends
             {pendingRequests.length > 0 && (
               <span className="tab-badge">{pendingRequests.length}</span>
             )}
+          </button>
+          <button
+            className={`social-tab ${activeTab === 'groups' ? 'active' : ''}`}
+            onClick={() => { 
+              setActiveTab('groups'); 
+              dispatch(clearChat()); 
+              dispatch(clearGroupChat());
+              dispatch(fetchGroups());
+            }}
+          >
+            <HiStar /> Groups
           </button>
         </div>
 
@@ -275,6 +346,161 @@ const Social = () => {
               <input
                 type="text"
                 placeholder="Type a message..."
+                value={chatText}
+                onChange={(e) => setChatText(e.target.value)}
+                className="chat-input"
+              />
+              <button type="submit" className="btn btn-primary btn-sm">
+                Send
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* ── GROUPS TAB ── */}
+        {activeTab === 'groups' && !activeGroup && (
+          <div className="groups-container">
+            <div className="groups-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0 }}>Your Groups ({groups.length})</h3>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowCreateGroup(true)}>
+                + Create Group
+              </button>
+            </div>
+
+            {groups.length === 0 && (
+              <div className="empty-friends" style={{ background: 'var(--bg-card)', padding: '3rem 2rem', textAlign: 'center', borderRadius: 'var(--radius)' }}>
+                <HiStar style={{ fontSize: '3rem', color: 'var(--accent)', marginBottom: '1rem', opacity: 0.6 }} />
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>You are not in any groups yet. Build a team and start collaborating!</p>
+              </div>
+            )}
+
+            <div className="groups-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+              {groups.map((g) => (
+                <div key={g._id} className="friend-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1rem', padding: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div className="friend-avatar" style={{ background: 'var(--accent)', color: 'white' }}>{g.name.charAt(0).toUpperCase()}</div>
+                    <div className="friend-info">
+                      <span className="friend-name" style={{ fontWeight: '600' }}>{g.name}</span>
+                      <span className="friend-stats" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        {g.members.length} members · Created by {g.creator?.name || 'Unknown'}
+                      </span>
+                    </div>
+                  </div>
+                  <button className="btn-chat" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px' }} onClick={() => openGroupChat(g)}>
+                    <HiChat /> Enter Group Chat
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── CREATE GROUP MODAL ── */}
+        {showCreateGroup && (
+          <div className="modal-overlay" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+            <div className="modal-content" style={{ maxWidth: '450px', width: '90%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+              <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0 }}>Create a Productivity Team</h3>
+                <button className="btn-ghost" onClick={() => { setShowCreateGroup(false); setGroupName(''); setSelectedMembers([]); }}>
+                  <HiX style={{ fontSize: '1.25rem' }} />
+                </button>
+              </div>
+              
+              <form onSubmit={handleCreateGroup} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: '600' }}>Group Name</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    required
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    placeholder="E.g., Peak Performers, Study Wizards..."
+                  />
+                </div>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label className="form-label" style={{ fontWeight: '600', margin: 0 }}>Select Members</label>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Invite your friends to the group:</span>
+                  {friends.length === 0 ? (
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontStyle: 'italic', margin: '0.5rem 0' }}>No friends available. Add friends from the leaderboard first!</p>
+                  ) : (
+                    <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      {friends.map((f) => (
+                        <label key={f._id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '4px' }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedMembers.includes(f._id)}
+                            onChange={() => toggleMemberSelection(f._id)}
+                            style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
+                          />
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>{f.name}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Lv.{f.level} · {f.xp} XP</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', width: '100%' }}>
+                  Forge Group
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ── GROUP CHAT VIEW ── */}
+        {activeTab === 'groups' && activeGroup && (
+          <div className="chat-container">
+            <div className="chat-header">
+              <button className="btn-ghost" onClick={() => dispatch(clearGroupChat())}>
+                <HiChevronLeft />
+              </button>
+              <div className="chat-user-avatar" style={{ background: 'var(--accent)', color: 'white' }}>{activeGroup.name.charAt(0).toUpperCase()}</div>
+              <div className="chat-user-info">
+                <span className="chat-user-name">{activeGroup.name}</span>
+                <span className="chat-user-level" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{activeGroup.members.length} members</span>
+              </div>
+            </div>
+
+            <div className="chat-messages">
+              {groupMessages.length === 0 && (
+                <div className="chat-empty">
+                  <HiChat />
+                  <p>Welcome to {activeGroup.name}! Break the ice 👋</p>
+                </div>
+              )}
+              {groupMessages.map((msg) => (
+                <div
+                  key={msg._id}
+                  className={`chat-bubble ${
+                    msg.senderId?._id === user?._id ? 'sent' : 'received'
+                  }`}
+                >
+                  {msg.senderId?._id !== user?._id && (
+                    <span className="chat-sender-name" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '2px' }}>
+                      {msg.senderId?.name || 'Group Member'}
+                    </span>
+                  )}
+                  <p>{msg.text}</p>
+                  <span className="chat-time">
+                    {new Date(msg.createdAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+
+            <form className="chat-input-row" onSubmit={handleSendGroupMessage}>
+              <input
+                type="text"
+                placeholder="Message the group..."
                 value={chatText}
                 onChange={(e) => setChatText(e.target.value)}
                 className="chat-input"

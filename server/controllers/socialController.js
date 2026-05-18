@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Friendship = require('../models/Friendship');
 const Message = require('../models/Message');
+const Group = require('../models/Group');
 
 /**
  * @desc    Get global leaderboard
@@ -161,7 +162,7 @@ const getFriends = async (req, res, next) => {
 };
 
 /**
- * @desc    Send a chat message
+ * @desc    Send a chat message (DM)
  * @route   POST /api/social/messages
  */
 const sendMessage = async (req, res, next) => {
@@ -202,6 +203,7 @@ const getMessages = async (req, res, next) => {
         { senderId: userId, receiverId: otherId },
         { senderId: otherId, receiverId: userId },
       ],
+      groupId: null,
     })
       .sort({ createdAt: 1 })
       .limit(100)
@@ -220,6 +222,144 @@ const getMessages = async (req, res, next) => {
   }
 };
 
+// ─── GROUP CHAT ─────────────────────────────────────────
+
+/**
+ * @desc    Create a group
+ * @route   POST /api/social/groups
+ */
+const createGroup = async (req, res, next) => {
+  try {
+    const { name, memberIds } = req.body;
+    const creatorId = req.user._id;
+
+    if (!name || !memberIds || memberIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Group name and at least one member required' });
+    }
+
+    // Always include the creator as a member
+    const allMembers = [...new Set([creatorId.toString(), ...memberIds])];
+
+    const group = await Group.create({
+      name,
+      members: allMembers,
+      creator: creatorId,
+    });
+
+    const populated = await Group.findById(group._id)
+      .populate('members', 'name xp level')
+      .populate('creator', 'name');
+
+    // Join all members to the socket room
+    const io = req.app.get('io');
+    if (io) {
+      allMembers.forEach((memberId) => {
+        const sockets = io.sockets.adapter.rooms.get(memberId);
+        if (sockets) {
+          sockets.forEach((socketId) => {
+            io.sockets.sockets.get(socketId)?.join(`group:${group._id}`);
+          });
+        }
+      });
+
+      // Notify members
+      allMembers.forEach((memberId) => {
+        if (memberId !== creatorId.toString()) {
+          io.to(memberId).emit('group_created', populated);
+        }
+      });
+    }
+
+    res.status(201).json({ success: true, data: populated });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get all groups user belongs to
+ * @route   GET /api/social/groups
+ */
+const getGroups = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    const groups = await Group.find({ members: userId })
+      .populate('members', 'name xp level')
+      .populate('creator', 'name')
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json({ success: true, data: groups });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Send a message to a group
+ * @route   POST /api/social/groups/:id/messages
+ */
+const sendGroupMessage = async (req, res, next) => {
+  try {
+    const { text } = req.body;
+    const groupId = req.params.id;
+    const senderId = req.user._id;
+
+    // Verify user is a member
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+    if (!group.members.some((m) => m.toString() === senderId.toString())) {
+      return res.status(403).json({ success: false, message: 'Not a member of this group' });
+    }
+
+    const message = await Message.create({ senderId, groupId, text });
+
+    const populated = await Message.findById(message._id)
+      .populate('senderId', 'name');
+
+    // Real-time delivery to group room
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group:${groupId}`).emit('group_message', {
+        ...populated.toObject(),
+        groupId,
+      });
+    }
+
+    res.status(201).json({ success: true, data: populated });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get message history for a group
+ * @route   GET /api/social/groups/:id/messages
+ */
+const getGroupMessages = async (req, res, next) => {
+  try {
+    const groupId = req.params.id;
+    const userId = req.user._id;
+
+    // Verify membership
+    const group = await Group.findById(groupId);
+    if (!group || !group.members.some((m) => m.toString() === userId.toString())) {
+      return res.status(403).json({ success: false, message: 'Not a member of this group' });
+    }
+
+    const messages = await Message.find({ groupId })
+      .sort({ createdAt: 1 })
+      .limit(200)
+      .populate('senderId', 'name');
+
+    res.status(200).json({ success: true, data: messages });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getLeaderboard,
   sendFriendRequest,
@@ -227,4 +367,8 @@ module.exports = {
   getFriends,
   sendMessage,
   getMessages,
+  createGroup,
+  getGroups,
+  sendGroupMessage,
+  getGroupMessages,
 };

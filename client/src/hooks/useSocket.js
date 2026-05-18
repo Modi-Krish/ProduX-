@@ -8,7 +8,12 @@ import {
 } from '../features/tasks/taskSlice';
 import { socketHabitUpdated } from '../features/habits/habitSlice';
 import { socketHobbyUpdated } from '../features/hobbies/hobbySlice';
-import { socketNewMessage, socketFriendRequest } from '../features/social/socialSlice';
+import {
+  socketNewMessage,
+  socketGroupMessage,
+  socketFriendRequest,
+  socketGroupCreated,
+} from '../features/social/socialSlice';
 import { getDashboard } from '../features/dashboard/dashboardSlice';
 import { applyGamificationUpdate } from '../features/gamification/gamificationSlice';
 
@@ -54,13 +59,22 @@ const useSocket = () => {
       dispatch(socketHobbyUpdated(hobby));
     });
 
-    // Social events
+    // Social events — DM
     socket.on('new_message', (msg) => {
       dispatch(socketNewMessage(msg));
     });
 
     socket.on('friend_request', (data) => {
       dispatch(socketFriendRequest(data));
+    });
+
+    // Social events — Group
+    socket.on('group_message', (msg) => {
+      dispatch(socketGroupMessage(msg));
+    });
+
+    socket.on('group_created', (group) => {
+      dispatch(socketGroupCreated(group));
     });
 
     return () => {
@@ -72,6 +86,8 @@ const useSocket = () => {
       socket.off('hobby_updated');
       socket.off('new_message');
       socket.off('friend_request');
+      socket.off('group_message');
+      socket.off('group_created');
       disconnectSocket();
     };
   }, [token, dispatch]);
@@ -80,4 +96,3 @@ const useSocket = () => {
 };
 
 export default useSocket;
-

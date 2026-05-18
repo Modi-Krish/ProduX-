@@ -2461,3 +2461,29 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   .podium-card.rank-3 { order: 3; }
   .nav-label { display: none; }
 }
+
+/* Group Chat Styles */
+.chat-bubble.received .chat-sender-name {
+  color: var(--accent) !important;
+  font-weight: 800 !important;
+  font-size: 0.75rem !important;
+  margin-bottom: 2px !important;
+  display: block !important;
+}
+
+.groups-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.groups-actions h3 {
+  font-weight: 800;
+  color: var(--fg);
+}
+
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}

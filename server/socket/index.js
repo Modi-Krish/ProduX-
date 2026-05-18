@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const Group = require('../models/Group');
 
 /**
  * Initialize Socket.io with auth and room management
@@ -22,12 +23,25 @@ const initializeSocket = (io) => {
     }
   });
 
-  io.on('connection', (socket) => {
+  io.on('connection', async (socket) => {
     const userId = socket.userId;
     console.log(`🔌 Socket connected: ${socket.id} (User: ${userId})`);
 
     // Join user to their personal room
     socket.join(userId);
+
+    // Auto-join all group rooms the user belongs to
+    try {
+      const groups = await Group.find({ members: userId }).select('_id');
+      groups.forEach((group) => {
+        socket.join(`group:${group._id}`);
+      });
+      if (groups.length > 0) {
+        console.log(`📡 User ${userId} joined ${groups.length} group room(s)`);
+      }
+    } catch (err) {
+      console.error('Error joining group rooms:', err.message);
+    }
 
     // Handle disconnection
     socket.on('disconnect', (reason) => {

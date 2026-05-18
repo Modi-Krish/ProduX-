@@ -21,6 +21,19 @@ import { getDashboard } from '../features/dashboard/dashboardSlice';
 import { applyGamificationUpdate } from '../features/gamification/gamificationSlice';
 
 /**
+ * Helper to send native browser push notifications when the app is in the background
+ */
+const sendNativeNotification = (title, body) => {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted' && document.visibilityState === 'hidden') {
+    new Notification(title, {
+      body,
+      icon: '/favicon.ico',
+    });
+  }
+};
+
+/**
  * Custom hook that manages socket connection lifecycle and
  * dispatches Redux actions on incoming socket events.
  */
@@ -30,6 +43,11 @@ const useSocket = () => {
 
   useEffect(() => {
     if (!token) return;
+
+    // Request native notification permission if not yet decided
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
 
     const socket = connectSocket(token);
 
@@ -73,7 +91,9 @@ const useSocket = () => {
       // Notify if message is not from current user and we aren't currently viewing this chat
       if (currentUser && msg.senderId._id !== currentUser._id) {
         if (!activeChatUser || activeChatUser._id !== msg.senderId._id) {
-          toast(`New message from ${msg.senderId.name}`, { icon: '💬' });
+          const title = `New message from ${msg.senderId.name}`;
+          toast(title, { icon: '💬' });
+          sendNativeNotification(title, msg.text);
         }
       }
     });
@@ -84,7 +104,9 @@ const useSocket = () => {
       const state = store.getState();
       const currentUser = state.auth.user;
       if (currentUser && data.senderId !== currentUser._id) {
-        toast(`New friend request from ${data.name || 'someone'}`, { icon: '👋' });
+        const title = `New friend request from ${data.name || 'someone'}`;
+        toast(title, { icon: '👋' });
+        sendNativeNotification(title, 'You have a new friend request pending!');
       }
     });
 
@@ -101,7 +123,9 @@ const useSocket = () => {
         if (!activeGroup || activeGroup._id !== msg.groupId) {
           const group = groups.find(g => g._id === msg.groupId);
           const groupName = group ? group.name : 'a group';
-          toast(`New message in ${groupName} from ${msg.senderId.name}`, { icon: '💬' });
+          const title = `New message in ${groupName}`;
+          toast(`${title} from ${msg.senderId.name}`, { icon: '💬' });
+          sendNativeNotification(title, `${msg.senderId.name}: ${msg.text}`);
         }
       }
     });

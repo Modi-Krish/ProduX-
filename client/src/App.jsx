@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchCurrentUser } from './features/auth/authSlice';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Preferences } from '@capacitor/preferences';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -18,6 +19,13 @@ function App() {
   useEffect(() => {
     if (token) {
       dispatch(fetchCurrentUser());
+      if (Capacitor.isNativePlatform()) {
+        Preferences.set({ key: 'token', value: token });
+      }
+    } else {
+      if (Capacitor.isNativePlatform()) {
+        Preferences.remove({ key: 'token' });
+      }
     }
   }, [token, dispatch]);
 

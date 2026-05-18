@@ -4,6 +4,7 @@ import android.os.Bundle;
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 import com.getcapacitor.BridgeActivity;
@@ -24,7 +25,7 @@ public class MainActivity extends BridgeActivity {
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build();
 
-        // Android enforces a minimum 15-minute interval for periodic tasks to preserve battery life.
+        // 1. Android enforces a minimum 15-minute interval for periodic tasks to preserve battery life.
         PeriodicWorkRequest periodicWorkRequest = new PeriodicWorkRequest.Builder(
                 NotificationWorker.class,
                 15,
@@ -39,5 +40,10 @@ public class MainActivity extends BridgeActivity {
                 ExistingPeriodicWorkPolicy.KEEP,
                 periodicWorkRequest
         );
+
+        // 2. ALSO enqueue an immediate OneTimeWorkRequest for instant testing on app boot!
+        OneTimeWorkRequest oneTimeWorkRequest = new OneTimeWorkRequest.Builder(NotificationWorker.class)
+                .build();
+        WorkManager.getInstance(this).enqueue(oneTimeWorkRequest);
     }
 }

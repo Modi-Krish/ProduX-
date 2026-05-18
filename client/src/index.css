@@ -2433,6 +2433,7 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   display: flex;
   gap: 0.5rem;
   padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   border-top: 3px solid var(--fg);
   background: var(--muted);
 }
@@ -2491,18 +2492,30 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   .groups-grid {
     grid-template-columns: 1fr;
   }
-  .chat-container.chat-maximized {
+  .chat-container {
+    position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
     width: 100vw !important;
-    height: 100dvh !important;
-    height: 100svh !important;
-    max-height: 100dvh !important;
+    height: auto !important;
+    max-height: none !important;
+    z-index: 10000 !important;
+    background: var(--card) !important;
+    display: flex !important;
+    flex-direction: column !important;
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    animation: popUp var(--transition);
+  }
+  .chat-container .chat-messages {
+    max-height: none !important;
+    flex: 1 !important;
+  }
+  .chat-maximize-toggle {
+    display: none !important;
   }
 }
 

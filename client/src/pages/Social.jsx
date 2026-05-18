@@ -483,7 +483,7 @@ const Social = () => {
               </div>
               <div style={{ flex: 1 }} />
               <button
-                className="btn-ghost"
+                className="btn-ghost chat-maximize-toggle"
                 onClick={() => setIsMaximized(!isMaximized)}
                 style={{ fontSize: '1.25rem', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title={isMaximized ? 'Minimize' : 'Maximize'}
@@ -693,7 +693,7 @@ const Social = () => {
 
               {/* Maximize Toggle */}
               <button
-                className="btn-ghost"
+                className="btn-ghost chat-maximize-toggle"
                 onClick={() => setIsMaximized(!isMaximized)}
                 style={{ fontSize: '1.25rem', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title={isMaximized ? 'Minimize' : 'Maximize'}

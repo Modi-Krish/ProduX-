@@ -44,13 +44,38 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         });
 
         if (!isFocused) {
-          // User is off-focus! Send a notification
-          chrome.notifications.create('focus-warning-' + Date.now(), {
-            type: 'basic',
-            iconUrl: 'icon.png',
-            title: '⚠️ You\'re Off Focus!',
-            message: `Get back to ${data.focusUrl}! You were supposed to be working there.`,
-            priority: 2,
+          // Fetch context-aware AI warning from server
+          fetch('http://localhost:5000/api/ai/coach', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              intendedFocus: data.focusUrl,
+              currentUrl: currentUrl,
+              pageTitle: tabs[0].title || 'Unknown Page'
+            })
+          })
+          .then(res => res.json())
+          .then(resData => {
+            const warningMessage = resData.warning || `Get back to ${data.focusUrl}! You were supposed to be working there.`;
+            chrome.notifications.create('focus-warning-' + Date.now(), {
+              type: 'basic',
+              iconUrl: 'icon.png',
+              title: '⚠️ Off Focus! (AI Coach)',
+              message: warningMessage,
+              priority: 2,
+            });
+          })
+          .catch(err => {
+            console.error('Focus Coach request failed, falling back to static warning:', err);
+            chrome.notifications.create('focus-warning-' + Date.now(), {
+              type: 'basic',
+              iconUrl: 'icon.png',
+              title: '⚠️ You\'re Off Focus!',
+              message: `Get back to ${data.focusUrl}! You were supposed to be working there.`,
+              priority: 2,
+            });
           });
         }
       });

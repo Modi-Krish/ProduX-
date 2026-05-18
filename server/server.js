@@ -20,6 +20,7 @@ const gamificationRoutes = require('./routes/gamificationRoutes');
 const habitRoutes = require('./routes/habitRoutes');
 const hobbyRoutes = require('./routes/hobbyRoutes');
 const socialRoutes = require('./routes/socialRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 
 // Initialize Express
 const app = express();
@@ -64,6 +65,7 @@ app.use('/api/gamification', gamificationRoutes);
 app.use('/api/habits', habitRoutes);
 app.use('/api/hobbies', hobbyRoutes);
 app.use('/api/social', socialRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Error handler (must be after routes)
 app.use(errorHandler);

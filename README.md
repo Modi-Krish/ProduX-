@@ -14,6 +14,7 @@
 
 ### 1. 📋 RPG Task Management
 *   **Dynamic Workflows**: Create, track, and manage tasks with priority-based sorting.
+*   **🧙‍♂️ Quest Master (AI)**: Instantly generate a custom RPG-style quest line of subtasks for any goal using Google Gemini AI!
 *   **Subtask Mastery**: Break down big goals into manageable steps with progress tracking.
 *   **Task Cycles**: Support for One-off tasks, Daily habits, and Weekly routines.
 *   **Real-Time Sync**: Powered by Socket.io, your workspace updates instantly across all devices.
@@ -36,6 +37,7 @@
 ### 5. 🚨 Focus & Accountability
 *   **Math-to-Dismiss Alarms**: Set alarms for critical tasks. To stop the sound, you must solve a random mathematical problem—no more accidental snoozing!
 *   **🛡️ ProduX Focus Guard**: A companion Chrome Extension that monitors your browser. It ensures you stay on your designated work site and sends desktop notifications if you get distracted.
+*   **🧠 AI Focus Coach**: Distraction alerts are context-aware! If you wander off-focus, our Gemini AI generates a custom, sassy, or motivational RPG alert tailored to exactly what you are wasting time on.
 
 ---
 
@@ -100,6 +102,7 @@
 ---
 
 ## 📈 Recent Updates
+- **[v1.5]** 🧠 **Integrated Google Gemini AI**: Added RPG Quest Master subtask generator & Context-Aware Focus Coach distraction warning system.
 - **[v1.4]** 🚀 Added Real-time Chat and Friend system.
 - **[v1.3]** ⏰ Integrated Math-based alarm system for tasks.
 - **[v1.2]** 🏆 Launched 21-Day Hobby Challenges with interactive boards.

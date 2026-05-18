@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { HiX } from 'react-icons/hi';
+import { generateSubtasks } from '../api/aiApi';
+import { toast } from 'react-hot-toast';
 
 const CATEGORIES = ['General', 'Work', 'Personal', 'Study', 'Health', 'Finance', 'Other'];
 
@@ -17,6 +19,34 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
   });
 
   const [newSubtask, setNewSubtask] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  const handleAiGenerate = async () => {
+    if (!formData.title.trim()) return;
+    setIsAiLoading(true);
+    try {
+      const response = await generateSubtasks(formData.title, formData.description);
+      const generated = response.data.subtasks || [];
+      if (generated.length > 0) {
+        const formattedSubtasks = generated.map(subTitle => ({
+          title: subTitle,
+          isCompleted: false
+        }));
+        setFormData(prev => ({
+          ...prev,
+          subtasks: [...prev.subtasks, ...formattedSubtasks]
+        }));
+        toast.success('🧙‍♂️ Quest Master generated subtasks!');
+      } else {
+        toast.error('Quest Master failed to break down the task.');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to summon Quest Master.');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -136,7 +166,29 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
 
           {/* Subtasks Section */}
           <div className="form-group">
-            <label className="form-label">Subtasks (Optional)</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <label className="form-label" style={{ margin: 0 }}>Subtasks (Optional)</label>
+              {formData.title.trim() && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleAiGenerate}
+                  disabled={isAiLoading}
+                  style={{ 
+                    gap: '4px', 
+                    padding: '4px 10px', 
+                    fontSize: '0.75rem', 
+                    background: 'rgba(139, 92, 246, 0.1)', 
+                    color: 'var(--accent)', 
+                    borderColor: 'var(--accent)', 
+                    borderRadius: 'var(--radius-pill)', 
+                    border: '1.5px solid var(--accent)' 
+                  }}
+                >
+                  {isAiLoading ? '🧙‍♂️ Summoning...' : '✨ RPG Quest Master'}
+                </button>
+              )}
+            </div>
             <div className="subtask-add-row">
               <input
                 className="form-input"

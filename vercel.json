@@ -32,7 +32,7 @@
       "dest": "client/assets/$1"
     },
     {
-      "src": "/(favicon.ico|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.json)",
+      "src": "/(favicon.ico|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.json|.*\\.js|.*\\.txt)",
       "dest": "client/$1"
     },
     {

@@ -36,13 +36,13 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
           ...prev,
           subtasks: [...prev.subtasks, ...formattedSubtasks]
         }));
-        toast.success('🧙‍♂️ Quest Master generated subtasks!');
+        toast.success('✨ AI workflow subtasks generated!');
       } else {
-        toast.error('Quest Master failed to break down the task.');
+        toast.error('AI failed to break down the task.');
       }
     } catch (err) {
       console.error(err);
-      toast.error('Failed to summon Quest Master.');
+      toast.error('Failed to generate AI subtasks.');
     } finally {
       setIsAiLoading(false);
     }
@@ -185,7 +185,7 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
                     border: '1.5px solid var(--accent)' 
                   }}
                 >
-                  {isAiLoading ? '🧙‍♂️ Summoning...' : '✨ RPG Quest Master'}
+                  {isAiLoading ? '✨ Generating Workflow...' : '✨ AI Task Breakdown'}
                 </button>
               )}
             </div>

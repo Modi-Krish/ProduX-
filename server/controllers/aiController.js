@@ -17,19 +17,30 @@ exports.generateSubtasks = async (req, res) => {
     }
 
     const prompt = `
-      You are the "Quest Master", a fantasy RPG guide helping a hero conquer their real-world productivity goals.
-      Break down the following real-world task into 3 to 5 actionable, bite-sized RPG-style quest steps (subtasks).
+      Break down the following task into a structured workflow.
       
       Task Title: "${title}"
       Task Description: "${description || 'None'}"
       
+      Rules:
+      - Generate 4–8 subtasks.
+      - Subtasks must directly relate to the task title.
+      - Keep each subtask short, actionable, and clear.
+      - Use professional and natural wording.
+      - Avoid fantasy, RPG, poetic, or vague language.
+      - Maintain logical workflow order.
+      - Focus on execution-oriented steps.
+      - Do not repeat similar subtasks.
+      - Output ONLY a raw JSON array of strings. Do not include markdown code block formatting like \`\`\`json or \`\`\`.
+
       Guidelines:
-      1. Write short, active, clear action items.
-      2. Frame them with playful RPG/fantasy flavor where appropriate (e.g., "Draft the blueprint" or "Synthesize code components" or "Defeat the research dragon").
-      3. Return ONLY a raw JSON array of strings. Do not include markdown code block formatting like \`\`\`json or \`\`\`.
-      
-      Example output:
-      ["Scout out the documentation for hidden traps", "Establish a secure sandbox environment", "Synthesize a functional prototype"]
+      - If the title is technical, generate technical workflow subtasks.
+      - If the title is business-related, generate planning/execution subtasks.
+      - If the title is creative, generate ideation/production subtasks.
+      - Make the subtasks realistic and useful for productivity.
+
+      Example Input: "Lean AI ML"
+      Example Output: ["Define the AI problem scope", "Collect essential training data", "Build a lightweight prototype", "Test initial model performance", "Gather early user feedback", "Optimize model accuracy"]
     `;
 
     const response = await ai.models.generateContent({

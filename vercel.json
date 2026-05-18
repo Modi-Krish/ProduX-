@@ -28,11 +28,16 @@
       "dest": "server/server.js"
     },
     {
-      "handle": "filesystem"
+      "src": "/assets/(.*)",
+      "dest": "client/assets/$1"
+    },
+    {
+      "src": "/(favicon.ico|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.json)",
+      "dest": "client/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "client/dist/index.html"
+      "dest": "client/index.html"
     }
   ]
 }

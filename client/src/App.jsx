@@ -3,6 +3,8 @@ import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCurrentUser } from './features/auth/authSlice';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -18,6 +20,23 @@ function App() {
       dispatch(fetchCurrentUser());
     }
   }, [token, dispatch]);
+
+  // Request native notification access immediately on app startup
+  useEffect(() => {
+    const requestPermissionOnStartup = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const permStatus = await LocalNotifications.checkPermissions();
+          if (permStatus.display !== 'granted') {
+            await LocalNotifications.requestPermissions();
+          }
+        } catch (err) {
+          console.error('Error requesting startup notification permission:', err);
+        }
+      }
+    };
+    requestPermissionOnStartup();
+  }, []);
 
   return (
     <Router>

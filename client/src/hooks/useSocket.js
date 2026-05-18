@@ -46,10 +46,19 @@ function urlBase64ToUint8Array(base64String) {
 const sendNativeNotification = (title, body) => {
   if (!('Notification' in window)) return;
   if (Notification.permission === 'granted' && document.visibilityState === 'hidden') {
-    new Notification(title, {
-      body,
-      icon: '/favicon.ico',
-    });
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.showNotification(title, {
+          body,
+          icon: '/favicon.ico',
+        });
+      });
+    } else {
+      new Notification(title, {
+        body,
+        icon: '/favicon.ico',
+      });
+    }
   }
 };
 

@@ -292,7 +292,7 @@ const Social = () => {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <h4 style={{ margin: 0, fontSize: '1.1rem' }}>Find Friend by Unique ID</h4>
-                <div style={{
+                <div className="my-id-badge" style={{
                   background: 'var(--accent)',
                   color: 'white',
                   fontWeight: '800',
@@ -313,7 +313,7 @@ const Social = () => {
                 </div>
               </div>
               
-              <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.5rem' }}>
+              <form className="search-form" onSubmit={handleSearch} style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
                   type="text"
                   placeholder="Enter friend's ID (e.g. PRDX-123456)"

@@ -2463,20 +2463,40 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   .podium-card.rank-3 { order: 3; }
   .nav-label { display: none; }
 
+  .social-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
   .social-tab {
-    flex: 1 1 calc(50% - 0.5rem);
+    width: 100%;
     justify-content: center;
     font-size: 0.85rem;
     padding: 0.6rem;
+    margin: 0;
+  }
+  .social-tab:nth-child(3):last-child {
+    grid-column: span 2;
   }
   .pending-card, .friend-card, .search-result-card {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 1rem;
   }
-  .pending-actions, .friend-actions {
+  .pending-actions, .friend-actions, .search-result-actions {
     width: 100%;
     justify-content: flex-end;
     margin-top: 0.5rem;
+    flex: 1 1 100%;
+  }
+  .search-form {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  .search-form input, .search-form button {
+    width: 100% !important;
+    flex: none !important;
   }
   .lb-row {
     padding: 0.75rem;
@@ -2516,6 +2536,14 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   }
   .chat-maximize-toggle {
     display: none !important;
+  }
+  .search-friend-card {
+    padding: 1rem !important;
+  }
+  .my-id-badge {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 0.5rem;
   }
 }
 

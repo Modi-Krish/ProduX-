@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { registerUser, loginUser } from '../../api/authApi';
+import { registerUser, loginUser, getMe } from '../../api/authApi';
 
 // Get user from localStorage
 const user = JSON.parse(localStorage.getItem('user'));
@@ -48,6 +48,23 @@ export const login = createAsyncThunk(
   }
 );
 
+// Fetch Current User
+export const fetchCurrentUser = createAsyncThunk(
+  'auth/fetchCurrentUser',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await getMe();
+      const user = res.data.data;
+      localStorage.setItem('user', JSON.stringify(user));
+      return user;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || 'Failed to fetch profile'
+      );
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -76,6 +93,7 @@ const authSlice = createSlice({
           _id: action.payload._id,
           name: action.payload.name,
           email: action.payload.email,
+          customId: action.payload.customId,
           xp: action.payload.xp || 0,
           level: action.payload.level || 1,
           streak: action.payload.streak || 0,
@@ -100,6 +118,7 @@ const authSlice = createSlice({
           _id: action.payload._id,
           name: action.payload.name,
           email: action.payload.email,
+          customId: action.payload.customId,
           xp: action.payload.xp || 0,
           level: action.payload.level || 1,
           streak: action.payload.streak || 0,
@@ -112,6 +131,21 @@ const authSlice = createSlice({
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
+      })
+      // Fetch Current User
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.user = {
+          _id: action.payload._id,
+          name: action.payload.name,
+          email: action.payload.email,
+          customId: action.payload.customId,
+          xp: action.payload.xp || 0,
+          level: action.payload.level || 1,
+          streak: action.payload.streak || 0,
+          longestStreak: action.payload.longestStreak || 0,
+          totalTasksCompleted: action.payload.totalTasksCompleted || 0,
+          badges: action.payload.badges || [],
+        };
       });
   },
 });

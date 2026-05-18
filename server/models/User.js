@@ -67,6 +67,10 @@ const userSchema = new mongoose.Schema(
         earnedAt: { type: Date, default: Date.now },
       },
     ],
+    pushSubscriptions: {
+      type: Array,
+      default: []
+    }
   },
   {
     timestamps: true,

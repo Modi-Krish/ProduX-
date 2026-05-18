@@ -2,6 +2,13 @@ const User = require('../models/User');
 const Friendship = require('../models/Friendship');
 const Message = require('../models/Message');
 const Group = require('../models/Group');
+const webpush = require('web-push');
+
+webpush.setVapidDetails(
+  'mailto:your-email@example.com',
+  process.env.PUBLIC_VAPID_KEY,
+  process.env.PRIVATE_VAPID_KEY
+);
 
 /**
  * @desc    Get global leaderboard
@@ -183,6 +190,29 @@ const sendMessage = async (req, res, next) => {
       io.to(senderId.toString()).emit('new_message', populated);
     }
 
+    // Send Web Push Notification to receiver
+    const receiver = await User.findById(receiverId);
+    if (receiver && receiver.pushSubscriptions && receiver.pushSubscriptions.length > 0) {
+      const payload = JSON.stringify({
+        title: `New message from ${populated.senderId.name}`,
+        body: text.substring(0, 50),
+        icon: '/favicon.ico',
+        url: '/social'
+      });
+      
+      const sendPromises = receiver.pushSubscriptions.map(sub => 
+        webpush.sendNotification(sub, payload).catch(err => {
+          if (err.statusCode === 404 || err.statusCode === 410) {
+            console.log('Subscription has expired or is no longer valid');
+            // Normally you would remove it from DB here
+          } else {
+            console.error('Error sending push notification:', err);
+          }
+        })
+      );
+      await Promise.all(sendPromises);
+    }
+
     res.status(201).json({ success: true, data: populated });
   } catch (error) {
     next(error);
@@ -327,6 +357,33 @@ const sendGroupMessage = async (req, res, next) => {
         groupId,
       });
     }
+
+    // Send Web Push Notification to all group members (except sender)
+    const membersToNotify = group.members.filter(m => m.toString() !== senderId.toString());
+    const users = await User.find({ _id: { $in: membersToNotify } });
+    
+    const payload = JSON.stringify({
+      title: `New message in ${group.name}`,
+      body: `${populated.senderId.name}: ${text.substring(0, 50)}`,
+      icon: '/favicon.ico',
+      url: '/social'
+    });
+
+    const sendPromises = [];
+    users.forEach(memberUser => {
+      if (memberUser.pushSubscriptions && memberUser.pushSubscriptions.length > 0) {
+        memberUser.pushSubscriptions.forEach(sub => {
+          sendPromises.push(
+            webpush.sendNotification(sub, payload).catch(err => {
+              if (err.statusCode !== 404 && err.statusCode !== 410) {
+                console.error('Error sending push notification:', err);
+              }
+            })
+          );
+        });
+      }
+    });
+    await Promise.all(sendPromises);
 
     res.status(201).json({ success: true, data: populated });
   } catch (error) {
@@ -478,6 +535,32 @@ const findUserByCustomId = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Subscribe to Web Push Notifications
+ * @route   POST /api/social/subscribe
+ */
+const subscribePush = async (req, res, next) => {
+  try {
+    const subscription = req.body;
+    const userId = req.user._id;
+
+    // Check if subscription already exists for this user
+    const user = await User.findById(userId);
+    const exists = user.pushSubscriptions.some(
+      (sub) => sub.endpoint === subscription.endpoint
+    );
+
+    if (!exists) {
+      user.pushSubscriptions.push(subscription);
+      await user.save();
+    }
+
+    res.status(201).json({ success: true, message: 'Subscribed to push notifications' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getLeaderboard,
   sendFriendRequest,
@@ -491,4 +574,5 @@ module.exports = {
   getGroupMessages,
   addGroupMember,
   findUserByCustomId,
+  subscribePush,
 };

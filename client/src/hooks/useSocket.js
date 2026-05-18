@@ -19,6 +19,26 @@ import {
 } from '../features/social/socialSlice';
 import { getDashboard } from '../features/dashboard/dashboardSlice';
 import { applyGamificationUpdate } from '../features/gamification/gamificationSlice';
+import axios from 'axios';
+
+// API base URL for axios requests
+const API_URL = import.meta.env.VITE_API_URL || '';
+
+/**
+ * Helper to convert Base64 string to Uint8Array for VAPID key
+ */
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 /**
  * Helper to send native browser push notifications when the app is in the background
@@ -44,9 +64,40 @@ const useSocket = () => {
   useEffect(() => {
     if (!token) return;
 
-    // Request native notification permission if not yet decided
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+    // Web Push Subscription Helper
+    const subscribeUserToPush = async (registration) => {
+      try {
+        const publicVapidKey = import.meta.env.VITE_PUBLIC_VAPID_KEY;
+        if (!publicVapidKey) return;
+        
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+          });
+        }
+        
+        // Send subscription to our server
+        await axios.post(`${API_URL}/api/social/subscribe`, subscription, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.error('Web Push subscription failed:', err);
+      }
+    };
+
+    // Setup Web Push and Service Worker
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.register('/sw.js').then(registration => {
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') subscribeUserToPush(registration);
+          });
+        } else if (Notification.permission === 'granted') {
+          subscribeUserToPush(registration);
+        }
+      }).catch(err => console.error('Service Worker Registration Failed:', err));
     }
 
     const socket = connectSocket(token);

@@ -40,4 +40,8 @@ router.post('/groups/:id/members', addGroupMember);
 // Find user by customId
 router.get('/users/:customId', findUserByCustomId);
 
+// Web Push Subscribe
+const { subscribePush } = require('../controllers/socialController');
+router.post('/subscribe', subscribePush);
+
 module.exports = router;

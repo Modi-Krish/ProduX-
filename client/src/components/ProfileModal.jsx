@@ -20,6 +20,33 @@ const ProfileModal = ({ onClose }) => {
           <div className="profile-details">
             <h3>{user?.name}</h3>
             <p><HiMail /> {user?.email}</p>
+            <p
+              onClick={() => {
+                navigator.clipboard.writeText(user?.customId);
+                import('react-hot-toast').then(({ default: toast }) => {
+                  toast.success('Unique ID copied to clipboard!');
+                });
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginTop: '0.5rem',
+                fontSize: '0.85rem',
+                color: 'white',
+                background: 'var(--accent)',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-pill)',
+                border: '1.5px solid var(--fg)',
+                boxShadow: '2px 2px 0px var(--fg)',
+                fontWeight: '800',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              title="Click to copy your unique ID"
+            >
+              <span>ID: {user?.customId} 📋</span>
+            </p>
           </div>
         </div>
 

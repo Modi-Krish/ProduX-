@@ -1,4 +1,4 @@
-const Habit = require('../models/Habit');
+const { db, formatDoc, formatDocs } = require('../config/firebase');
 const { processHabitCompletion } = require('../services/gamificationService');
 
 /**
@@ -10,16 +10,27 @@ const createHabit = async (req, res, next) => {
   try {
     const { title, description, frequency } = req.body;
 
-    const habit = await Habit.create({
+    const habitData = {
       userId: req.user._id,
       title,
-      description,
-      frequency,
-    });
+      description: description || '',
+      frequency: frequency || 'Daily',
+      streak: 0,
+      lastCompleted: null,
+      history: [],
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const docRef = await db.collection('habits').add(habitData);
 
     res.status(201).json({
       success: true,
-      data: habit,
+      data: {
+        _id: docRef.id,
+        ...habitData
+      },
     });
   } catch (error) {
     next(error);
@@ -33,7 +44,12 @@ const createHabit = async (req, res, next) => {
  */
 const getHabits = async (req, res, next) => {
   try {
-    const habits = await Habit.find({ userId: req.user._id, isActive: true });
+    const habitsSnap = await db.collection('habits')
+      .where('userId', '==', req.user._id)
+      .where('isActive', '==', true)
+      .get();
+    
+    const habits = formatDocs(habitsSnap);
 
     res.status(200).json({
       success: true,
@@ -52,34 +68,44 @@ const getHabits = async (req, res, next) => {
  */
 const completeHabit = async (req, res, next) => {
   try {
-    const habit = await Habit.findById(req.params.id);
+    const habitRef = db.collection('habits').doc(req.params.id);
+    const habitSnap = await habitRef.get();
 
-    if (!habit) {
+    if (!habitSnap.exists) {
       return res.status(404).json({
         success: false,
         message: 'Habit not found',
       });
     }
 
-    if (habit.userId.toString() !== req.user._id.toString()) {
+    const habit = habitSnap.data();
+
+    if (habit.userId !== req.user._id) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized',
       });
     }
 
-    const gamificationResult = await processHabitCompletion(req.user._id, habit._id);
+    const gamificationResult = await processHabitCompletion(req.user._id, habitRef.id);
+
+    // Fetch the updated habit data
+    const updatedSnap = await habitRef.get();
+    const updatedHabit = {
+      _id: habitRef.id,
+      ...updatedSnap.data()
+    };
 
     // Emit socket event
     const io = req.app.get('io');
     if (io) {
       io.to(req.user._id.toString()).emit('gamification_update', gamificationResult);
-      io.to(req.user._id.toString()).emit('habit_updated', habit);
+      io.to(req.user._id.toString()).emit('habit_updated', updatedHabit);
     }
 
     res.status(200).json({
       success: true,
-      data: habit,
+      data: updatedHabit,
       gamification: gamificationResult,
     });
   } catch (error) {
@@ -94,24 +120,29 @@ const completeHabit = async (req, res, next) => {
  */
 const deleteHabit = async (req, res, next) => {
   try {
-    const habit = await Habit.findById(req.params.id);
+    const habitRef = db.collection('habits').doc(req.params.id);
+    const habitSnap = await habitRef.get();
 
-    if (!habit) {
+    if (!habitSnap.exists) {
       return res.status(404).json({
         success: false,
         message: 'Habit not found',
       });
     }
 
-    if (habit.userId.toString() !== req.user._id.toString()) {
+    const habit = habitSnap.data();
+
+    if (habit.userId !== req.user._id) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized',
       });
     }
 
-    habit.isActive = false;
-    await habit.save();
+    await habitRef.update({
+      isActive: false,
+      updatedAt: new Date()
+    });
 
     res.status(200).json({
       success: true,

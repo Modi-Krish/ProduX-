@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCurrentUser } from './features/auth/authSlice';
+import { fetchCurrentUser, restoreCredentials } from './features/auth/authSlice';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Preferences } from '@capacitor/preferences';
@@ -14,20 +14,65 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   const dispatch = useDispatch();
-  const { token } = useSelector((state) => state.auth);
+  const { token, user, isInitialized } = useSelector((state) => state.auth);
 
+  // 1. Asynchronously restore session from Capacitor Preferences on app startup
   useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const tokenRes = await Preferences.get({ key: 'token' });
+        const userRes = await Preferences.get({ key: 'user' });
+        
+        let tokenVal = tokenRes.value;
+        let userVal = null;
+
+        if (userRes.value) {
+          try {
+            userVal = JSON.parse(userRes.value);
+          } catch (e) {
+            console.error('Failed to parse user from Preferences:', e);
+          }
+        }
+
+        // Fallback to localStorage if Preferences are empty (e.g., first boot or web)
+        if (!tokenVal) {
+          tokenVal = localStorage.getItem('token');
+          const localUser = localStorage.getItem('user');
+          if (localUser) {
+            try {
+              userVal = JSON.parse(localUser);
+            } catch (e) {}
+          }
+        }
+
+        dispatch(restoreCredentials({ token: tokenVal, user: userVal }));
+      } catch (err) {
+        console.error('Error restoring persistent session:', err);
+        dispatch(restoreCredentials({ token: null, user: null }));
+      }
+    };
+
+    restoreSession();
+  }, [dispatch]);
+
+  // 2. Synchronize changes to Preferences and fetch profile once initialized
+  useEffect(() => {
+    if (!isInitialized) return;
+
     if (token) {
       dispatch(fetchCurrentUser());
-      if (Capacitor.isNativePlatform()) {
-        Preferences.set({ key: 'token', value: token });
+      Preferences.set({ key: 'token', value: token });
+      if (user) {
+        Preferences.set({ key: 'user', value: JSON.stringify(user) });
+      } else {
+        Preferences.remove({ key: 'user' });
       }
     } else {
-      if (Capacitor.isNativePlatform()) {
-        Preferences.remove({ key: 'token' });
-      }
+      Preferences.remove({ key: 'token' });
+      Preferences.remove({ key: 'user' });
     }
-  }, [token, dispatch]);
+  }, [token, user, isInitialized, dispatch]);
+
 
   // Request native notification access immediately on app startup
   useEffect(() => {

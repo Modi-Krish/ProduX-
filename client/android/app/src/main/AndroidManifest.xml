@@ -35,11 +35,14 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
+        <!-- Commented out legacy ForegroundPollingService to use battery-efficient FCM instead -->
+        <!--
         <service
             android:name=".ForegroundPollingService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        -->
 
     </application>
 
@@ -47,6 +50,4 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 </manifest>

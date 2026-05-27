@@ -10,8 +10,8 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Start Foreground Service for instant, real-time notifications
-        startInstantBackgroundService();
+        // Commented out to switch completely to energy-efficient Firebase Cloud Messaging (FCM) background wake-ups like WhatsApp
+        // startInstantBackgroundService();
     }
 
     private void startInstantBackgroundService() {

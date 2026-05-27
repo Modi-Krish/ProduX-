@@ -1,14 +1,25 @@
 import axios from 'axios';
+import { auth } from './firebase';
 
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
 });
 
-// Attach JWT token to every request
-API.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Attach Firebase Auth ID token to every request asynchronously
+API.interceptors.request.use(async (config) => {
+  if (auth && auth.currentUser) {
+    try {
+      const token = await auth.currentUser.getIdToken(true);
+      config.headers.Authorization = `Bearer ${token}`;
+    } catch (err) {
+      console.error('Failed to retrieve Firebase ID token:', err);
+    }
+  } else {
+    // Fallback if user is not fully loaded/cached
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });

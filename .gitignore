@@ -31,3 +31,7 @@ logs/
 Thumbs.db
 
 .vercel
+*.keystore
+server/scripts/service-account.json
+client/android/app/google-services.json
+.env*

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { HiX } from 'react-icons/hi';
-import { generateSubtasks } from '../api/aiApi';
 import { toast } from 'react-hot-toast';
+import { useAiWorkflow } from '../hooks/useAiWorkflow';
 
 const CATEGORIES = ['General', 'Work', 'Personal', 'Study', 'Health', 'Finance', 'Other'];
 
@@ -19,34 +19,17 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
   });
 
   const [newSubtask, setNewSubtask] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
 
-  const handleAiGenerate = async () => {
-    if (!formData.title.trim()) return;
-    setIsAiLoading(true);
-    try {
-      const response = await generateSubtasks(formData.title, formData.description);
-      const generated = response.data.subtasks || [];
-      if (generated.length > 0) {
-        const formattedSubtasks = generated.map(subTitle => ({
-          title: subTitle,
-          isCompleted: false
-        }));
-        setFormData(prev => ({
-          ...prev,
-          subtasks: [...prev.subtasks, ...formattedSubtasks]
-        }));
-        toast.success('✨ AI workflow subtasks generated!');
-      } else {
-        toast.error('AI failed to break down the task.');
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to generate AI subtasks.');
-    } finally {
-      setIsAiLoading(false);
+  const { isAiLoading, generate: handleAiGenerate } = useAiWorkflow(
+    formData.title,
+    formData.description,
+    (formattedSubtasks) => {
+      setFormData(prev => ({
+        ...prev,
+        subtasks: [...prev.subtasks, ...formattedSubtasks]
+      }));
     }
-  };
+  );
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

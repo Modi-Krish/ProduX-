@@ -1,4 +1,4 @@
-const Task = require('../models/Task');
+const { db, formatDocs } = require('../config/firebase');
 
 /**
  * @desc    Get dashboard summary for current user
@@ -9,8 +9,9 @@ const getDashboardSummary = async (req, res, next) => {
   try {
     const userId = req.user._id;
 
-    // Get all tasks for user
-    const tasks = await Task.find({ userId });
+    // Get all tasks for user from Firestore
+    const tasksSnap = await db.collection('tasks').where('userId', '==', userId).get();
+    const tasks = formatDocs(tasksSnap);
 
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter((t) => t.status === 'Completed').length;

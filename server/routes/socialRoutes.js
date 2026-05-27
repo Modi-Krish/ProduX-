@@ -14,6 +14,10 @@ const {
   addGroupMember,
   findUserByCustomId,
   getUnreadCount,
+  getConversations,
+  registerFCMToken,
+  triggerFCMPush,
+  markMessagesSeen,
 } = require('../controllers/socialController');
 const { protect } = require('../middlewares/auth');
 
@@ -28,8 +32,12 @@ router.post('/friends/request', sendFriendRequest);
 router.patch('/friends/:id', respondFriendRequest);
 router.get('/unread', getUnreadCount);
 
+// Conversations (DM list with unread counts)
+router.get('/conversations', getConversations);
+
 // DM Chat
 router.post('/messages', sendMessage);
+router.post('/messages/seen', markMessagesSeen);
 router.get('/messages/:userId', getMessages);
 
 // Group Chat
@@ -41,6 +49,10 @@ router.post('/groups/:id/members', addGroupMember);
 
 // Find user by customId
 router.get('/users/:customId', findUserByCustomId);
+
+// Native FCM Push Token & Notifications
+router.post('/fcm/token', registerFCMToken);
+router.post('/push-notify', triggerFCMPush);
 
 // Web Push Subscribe
 const { subscribePush } = require('../controllers/socialController');

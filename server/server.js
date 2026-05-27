@@ -8,7 +8,7 @@ const path = require('path');
 // Load env vars from root .env
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
-const connectDB = require('./config/db');
+
 const errorHandler = require('./middlewares/errorHandler');
 const initializeSocket = require('./socket');
 
@@ -56,7 +56,7 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: false }));
 
 // Health check
@@ -81,13 +81,17 @@ app.use('/api/ai', aiRoutes);
 // Error handler (must be after routes)
 app.use(errorHandler);
 
-// Connect to DB and start server
-const PORT = process.env.PORT || 5000;
+// Connect to Firebase Firestore is handled in firebase config
 
-connectDB().then(() => {
+// Start server locally (skip when deploying as Vercel Serverless Functions)
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
   server.listen(PORT, () => {
     console.log(`\n🚀 Server running on port ${PORT}`);
     console.log(`📡 Socket.io ready`);
     console.log(`🌐 Health: http://localhost:${PORT}/health\n`);
   });
-});
+}
+
+// Export the Express app for Vercel Serverless Functions
+module.exports = app;

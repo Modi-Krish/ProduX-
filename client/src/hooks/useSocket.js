@@ -16,6 +16,8 @@ import {
   socketFriendRequest,
   socketGroupCreated,
   socketGroupMemberAdded,
+  socketUpdateConversation,
+  socketMessagesSeen,
 } from '../features/social/socialSlice';
 import { getDashboard } from '../features/dashboard/dashboardSlice';
 import { applyGamificationUpdate } from '../features/gamification/gamificationSlice';
@@ -181,6 +183,24 @@ const useSocket = () => {
       const currentUser = state.auth.user;
       const { activeChatUser } = state.social;
       
+      // Update conversations list in real-time
+      if (currentUser) {
+        const isFromMe = msg.senderId._id === currentUser._id;
+        const partnerId = isFromMe ? msg.receiverId._id : msg.senderId._id;
+        const partnerName = isFromMe ? msg.receiverId?.name : msg.senderId?.name;
+        
+        dispatch(socketUpdateConversation({
+          partnerId,
+          partnerName: partnerName || 'Unknown',
+          partnerLevel: 1,
+          partnerXp: 0,
+          lastMessage: msg.text,
+          lastMessageAt: msg.createdAt,
+          lastSenderId: msg.senderId._id,
+          isFromMe,
+        }));
+      }
+      
       // Notify if message is not from current user and we aren't currently viewing this chat
       if (currentUser && msg.senderId._id !== currentUser._id) {
         if (!activeChatUser || activeChatUser._id !== msg.senderId._id) {
@@ -231,6 +251,11 @@ const useSocket = () => {
       dispatch(socketGroupMemberAdded(data));
     });
 
+    // Message read receipts — update ticks to "seen"
+    socket.on('messages_seen', (data) => {
+      dispatch(socketMessagesSeen(data));
+    });
+
     return () => {
       socket.off('task_created');
       socket.off('task_updated');
@@ -243,6 +268,7 @@ const useSocket = () => {
       socket.off('group_message');
       socket.off('group_created');
       socket.off('group_member_added');
+      socket.off('messages_seen');
       disconnectSocket();
     };
   }, [token, dispatch]);

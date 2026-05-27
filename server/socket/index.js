@@ -1,5 +1,4 @@
-const jwt = require('jsonwebtoken');
-const Group = require('../models/Group');
+const { admin, db } = require('../config/firebase');
 
 /**
  * Initialize Socket.io with auth and room management
@@ -7,7 +6,7 @@ const Group = require('../models/Group');
  */
 const initializeSocket = (io) => {
   // Auth middleware for socket connections
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
 
     if (!token) {
@@ -15,10 +14,12 @@ const initializeSocket = (io) => {
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.userId = decoded.id;
+      // Verify Firebase ID Token
+      const decoded = await admin.auth().verifyIdToken(token);
+      socket.userId = decoded.uid;
       next();
     } catch (err) {
+      console.error('Socket authentication error:', err.message);
       return next(new Error('Authentication error — invalid token'));
     }
   });
@@ -32,12 +33,16 @@ const initializeSocket = (io) => {
 
     // Auto-join all group rooms the user belongs to
     try {
-      const groups = await Group.find({ members: userId }).select('_id');
-      groups.forEach((group) => {
-        socket.join(`group:${group._id}`);
+      // Query group collection where current user's UID is in the members array
+      const groupsSnapshot = await db.collection('groups')
+        .where('members', 'array-contains', userId)
+        .get();
+
+      groupsSnapshot.forEach((doc) => {
+        socket.join(`group:${doc.id}`);
       });
-      if (groups.length > 0) {
-        console.log(`📡 User ${userId} joined ${groups.length} group room(s)`);
+      if (!groupsSnapshot.empty) {
+        console.log(`📡 User ${userId} joined ${groupsSnapshot.size} group room(s)`);
       }
     } catch (err) {
       console.error('Error joining group rooms:', err.message);

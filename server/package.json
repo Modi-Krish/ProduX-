@@ -1,6 +1,6 @@
 {
   "name": "server",
-  "version": "1.0.0",
+  "version": "2.2.0",
   "description": "",
   "main": "server.js",
   "scripts": {
@@ -13,12 +13,10 @@
   "type": "commonjs",
   "dependencies": {
     "@google/genai": "^2.4.0",
-    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^4.18.2",
-    "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.6.1",
+    "firebase-admin": "^13.10.0",
     "socket.io": "^4.8.3",
     "web-push": "^3.6.7"
   },

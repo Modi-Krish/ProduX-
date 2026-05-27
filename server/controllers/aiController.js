@@ -69,8 +69,19 @@ exports.generateSubtasks = async (req, res) => {
 
     return res.status(200).json({ subtasks });
   } catch (error) {
-    console.error('Quest Master subtask generation failed:', error);
-    return res.status(500).json({ message: 'AI failed to generate quests', error: error.message });
+    console.error('Quest Master subtask generation failed, returning self-healing fallback:', error);
+    
+    // Return high-quality context-aware fallback subtasks so the user experience is seamless
+    const titleClean = title.trim();
+    const subtasks = [
+      `Organize resources and prerequisites for "${titleClean}"`,
+      `Draft the initial framework and setup`,
+      `Execute primary objectives for "${titleClean}"`,
+      `Perform quality checks and refine details`,
+      `Complete final review and wrap up`
+    ];
+    
+    return res.status(200).json({ subtasks, isFallback: true });
   }
 };
 
@@ -111,7 +122,11 @@ exports.generateFocusWarning = async (req, res) => {
 
     return res.status(200).json({ warning });
   } catch (error) {
-    console.error('Focus Coach warning generation failed:', error);
-    return res.status(500).json({ message: 'AI failed to generate focus warning', error: error.message });
+    console.error('Focus Coach warning generation failed, returning self-healing fallback:', error);
+    
+    // Provide a neat default sassy RPG response in case of API failure
+    const warning = `Adventurer! Prohibited territory detected. Return to your sacred quest: "${intendedFocus}" before your mana drains!`;
+    return res.status(200).json({ warning, isFallback: true });
   }
 };
+

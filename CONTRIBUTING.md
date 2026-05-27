@@ -22,7 +22,7 @@ Have an idea for a new feature? Open an issue! We love discussing new ways to im
 
 1. Clone your fork.
 2. Run `npm install` in the root and `client/` directories.
-3. Copy `.env.example` to `.env` and fill in your MongoDB credentials.
+3. Copy `.env.example` to `.env` and fill in your Firebase credentials.
 4. Start development server: `npm run dev`
 
 ## ⚖️ Code of Conduct

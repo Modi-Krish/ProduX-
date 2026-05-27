@@ -1,5 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as socialApi from '../../api/socialApi';
+import { db, isConfigured } from '../../api/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 const initialState = {
   leaderboard: [],
@@ -11,6 +13,8 @@ const initialState = {
   groups: [],
   activeGroup: null,
   groupMessages: [],
+  // Conversations list (DM inbox)
+  conversations: [],
   searchedUser: null,
   searchError: null,
   isLoading: false,
@@ -79,12 +83,70 @@ export const fetchChatMessages = createAsyncThunk(
 
 export const sendChatMessage = createAsyncThunk(
   'social/sendMessage',
-  async ({ receiverId, text }, { rejectWithValue }) => {
+  async ({ receiverId, text, fileUrl, fileType, fileName, fileSize }, { getState, rejectWithValue }) => {
     try {
-      const res = await socialApi.sendMessage(receiverId, text);
+      const fileData = fileUrl ? { fileUrl, fileType, fileName, fileSize } : {};
+
+      if (isConfigured) {
+        const { auth, social } = getState();
+        const sender = auth.user;
+        const receiver = social.activeChatUser || { _id: receiverId, name: 'Friend' };
+        
+        if (!sender) {
+          throw new Error('You must be logged in to send messages');
+        }
+        
+        const messageData = {
+          senderId: { _id: sender._id, name: sender.name },
+          receiverId: { _id: receiver._id, name: receiver.name },
+          text: text || '',
+          createdAt: new Date().toISOString(),
+          participants: [sender._id, receiver._id],
+          status: 'sent',
+          seenAt: null,
+          ...fileData,
+        };
+        
+        const docRef = await addDoc(collection(db, 'dms'), messageData);
+        
+        // Concurrently dispatch lightweight backend FCM push notification (fire-and-forget)
+        socialApi.triggerPushNotification({ receiverId, text: text || fileName || 'Sent a file' }).catch((err) => {
+          console.warn('FCM Push Notification dispatch failed/skipped:', err.message);
+        });
+
+        return { ...messageData, _id: docRef.id };
+      } else {
+        const res = await socialApi.sendMessage(receiverId, text, fileData);
+        return res.data.data;
+      }
+    } catch (err) {
+      return rejectWithValue(err.message || err.response?.data?.message || 'Failed to send message');
+    }
+  }
+);
+
+// ─── MARK MESSAGES AS SEEN THUNK ────────────────────────
+export const markMessagesSeen = createAsyncThunk(
+  'social/markMessagesSeen',
+  async (senderId, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.markMessagesSeen(senderId);
       return res.data.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to send message');
+      return rejectWithValue(err.response?.data?.message || 'Failed to mark messages as seen');
+    }
+  }
+);
+
+// ─── CONVERSATIONS THUNK ────────────────────────────────
+export const fetchConversations = createAsyncThunk(
+  'social/fetchConversations',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await socialApi.fetchConversations();
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch conversations');
     }
   }
 );
@@ -129,12 +191,41 @@ export const fetchGroupChatMessages = createAsyncThunk(
 
 export const sendGroupChatMessage = createAsyncThunk(
   'social/sendGroupMessage',
-  async ({ groupId, text }, { rejectWithValue }) => {
+  async ({ groupId, text, fileUrl, fileType, fileName, fileSize }, { getState, rejectWithValue }) => {
     try {
-      const res = await socialApi.sendGroupMessage(groupId, text);
-      return res.data.data;
+      const fileData = fileUrl ? { fileUrl, fileType, fileName, fileSize } : {};
+
+      if (isConfigured) {
+        const { auth } = getState();
+        const sender = auth.user;
+        
+        if (!sender) {
+          throw new Error('You must be logged in to send messages');
+        }
+        
+        const messageData = {
+          groupId: groupId,
+          senderId: { _id: sender._id, name: sender.name },
+          text: text || '',
+          createdAt: new Date().toISOString(),
+          status: 'sent',
+          ...fileData,
+        };
+        
+        const docRef = await addDoc(collection(db, 'groupMessages'), messageData);
+        
+        // Concurrently dispatch lightweight backend FCM push notification (fire-and-forget)
+        socialApi.triggerPushNotification({ groupId, text: text || fileName || 'Sent a file' }).catch((err) => {
+          console.warn('FCM Push Notification dispatch failed/skipped:', err.message);
+        });
+
+        return { ...messageData, _id: docRef.id };
+      } else {
+        const res = await socialApi.sendGroupMessage(groupId, text, fileData);
+        return res.data.data;
+      }
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to send group message');
+      return rejectWithValue(err.message || err.response?.data?.message || 'Failed to send group message');
     }
   }
 );
@@ -201,6 +292,63 @@ const socialSlice = createSlice({
         if (!exists) state.messages.push(msg);
       }
     },
+    // Update conversations list in real-time when a new DM arrives
+    socketUpdateConversation: (state, action) => {
+      const { partnerId, partnerName, partnerLevel, partnerXp, lastMessage, lastMessageAt, lastSenderId, isFromMe } = action.payload;
+      
+      const existingIdx = state.conversations.findIndex(
+        (c) => c.partnerId === partnerId || c._id === partnerId
+      );
+      
+      if (existingIdx !== -1) {
+        // Update existing conversation
+        const conv = { ...state.conversations[existingIdx] };
+        conv.lastMessage = lastMessage;
+        conv.lastMessageAt = lastMessageAt;
+        conv.lastSenderId = lastSenderId;
+        // Only increment unread if the message is NOT from me and I'm NOT currently viewing this chat
+        if (!isFromMe && (!state.activeChatUser || state.activeChatUser._id !== partnerId)) {
+          conv.unreadCount = (conv.unreadCount || 0) + 1;
+        }
+        // Remove from old position and add to top
+        state.conversations.splice(existingIdx, 1);
+        state.conversations.unshift(conv);
+      } else {
+        // New conversation — add to top
+        state.conversations.unshift({
+          _id: partnerId,
+          partnerId,
+          partnerName: partnerName || 'Unknown',
+          partnerLevel: partnerLevel || 1,
+          partnerXp: partnerXp || 0,
+          lastMessage,
+          lastMessageAt,
+          lastSenderId,
+          unreadCount: isFromMe ? 0 : 1,
+        });
+      }
+    },
+    // Clear unread count for a specific conversation when user opens it
+    clearConversationUnread: (state, action) => {
+      const partnerId = action.payload;
+      const conv = state.conversations.find(
+        (c) => c.partnerId === partnerId || c._id === partnerId
+      );
+      if (conv) {
+        conv.unreadCount = 0;
+      }
+    },
+    // Update message status to 'seen' when receiver opens the chat
+    socketMessagesSeen: (state, action) => {
+      const { byUserId, messageIds, seenAt } = action.payload;
+      state.messages.forEach((msg) => {
+        if (messageIds.includes(msg._id)) {
+          msg.status = 'seen';
+          msg.seenAt = seenAt;
+          msg.read = true;
+        }
+      });
+    },
     socketGroupMessage: (state, action) => {
       const msg = action.payload;
       // Only add if relevant to the currently open group chat
@@ -222,6 +370,12 @@ const socialSlice = createSlice({
       if (state.activeGroup && state.activeGroup._id === groupId) {
         state.activeGroup = group;
       }
+    },
+    setMessages: (state, action) => {
+      state.messages = action.payload;
+    },
+    setGroupMessages: (state, action) => {
+      state.groupMessages = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -250,6 +404,10 @@ const socialSlice = createSlice({
       .addCase(sendChatMessage.fulfilled, (state, action) => {
         const exists = state.messages.some((m) => m._id === action.payload._id);
         if (!exists) state.messages.push(action.payload);
+      })
+      // Conversations
+      .addCase(fetchConversations.fulfilled, (state, action) => {
+        state.conversations = action.payload;
       })
       // Groups
       .addCase(fetchGroups.fulfilled, (state, action) => {
@@ -290,9 +448,14 @@ export const {
   clearGroupChat,
   clearSearch,
   socketNewMessage,
+  socketUpdateConversation,
+  clearConversationUnread,
+  socketMessagesSeen,
   socketGroupMessage,
   socketFriendRequest,
   socketGroupCreated,
   socketGroupMemberAdded,
+  setMessages,
+  setGroupMessages,
 } = socialSlice.actions;
 export default socialSlice.reducer;

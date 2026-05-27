@@ -3,11 +3,11 @@
 
   # 🚀 ProduX
 
-  **The Ultimate Real-Time Productivity & Social Management System**
+  **The Ultimate Real-Time Gamified Productivity & Social Management System**
 
   [![React](https://img.shields.io/badge/React-19.0-blue.svg?style=for-the-badge&logo=react)](https://reactjs.org/)
   [![Node.js](https://img.shields.io/badge/Node.js-Express-green.svg?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
-  [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
+  [![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28.svg?style=for-the-badge&logo=firebase)](https://firebase.google.com/)
   [![Capacitor](https://img.shields.io/badge/Capacitor-Android-1192FA.svg?style=for-the-badge&logo=capacitor)](https://capacitorjs.com/)
   [![Socket.io](https://img.shields.io/badge/Socket.io-Real--Time-black.svg?style=for-the-badge&logo=socketdotio)](https://socket.io/)
 
@@ -18,24 +18,25 @@
 
 ## 📖 Overview
 
-**ProduX** is a production-grade, gamified productivity tracking system built with the MERN stack. It bridges the gap between personal task management and social accountability. Featuring real-time WebSockets, native Android background services, and a sleek glassmorphic UI, ProduX redefines how teams and individuals track habits and execute tasks.
+**ProduX** is a production-grade, gamified productivity tracking system built with the modern MERN/Firebase stack. It bridges the gap between personal task management and social accountability. Featuring real-time WebSockets, native Android background services, and a sleek glassmorphic UI, ProduX redefines how teams and individuals track habits and execute tasks.
 
 ## ✨ Features
 
 - **⚡ Real-Time Synchronization**: Instant task updates and chat messages powered by Socket.io.
-- **📱 Native Mobile Application**: Fully integrated Android wrapper using Capacitor, featuring native Foreground Services and OS-level push notifications without Firebase.
+- **📱 Native Mobile Application**: Fully integrated Android wrapper using Capacitor, featuring native Foreground Services and OS-level push notifications without heavy external libraries.
 - **🎮 Gamification Engine**: Earn XP, level up, maintain streaks, and unlock unique badges to stay motivated.
 - **🤝 Social Accountability**: Send friend requests, create groups, and chat securely in real-time.
-- **🔒 Enterprise Security**: JWT-based authentication, robust CORS policies, and secure MongoDB queries.
-- **🎨 Modern Glassmorphic UI**: Built with React, Tailwind/CSS, and Framer Motion for buttery-smooth micro-animations.
+- **🔒 Enterprise Security**: Firebase Authentication, secure Firestore queries, and robust API rate limiting.
+- **🎨 Modern Glassmorphic UI**: Built with React, custom CSS, and Framer Motion for buttery-smooth micro-animations.
+- **🧠 AI Workflow Breakdown**: Google Gemini AI integrated to automatically split large tasks into manageable subtasks.
 
 ## 🛠️ Tech Stack
 
 | Category | Technologies |
 | --- | --- |
 | **Frontend** | React 19, Vite, Redux Toolkit, Framer Motion, React Router |
-| **Backend** | Node.js, Express.js, Socket.io, JWT |
-| **Database** | MongoDB Atlas, Mongoose |
+| **Backend** | Node.js, Express.js, Socket.io, Firebase Admin SDK |
+| **Database** | Firebase Firestore |
 | **Mobile Native** | Capacitor Core, Android WorkManager, Java Foreground Services |
 | **Deployment** | Vercel (Frontend & Serverless Backend) |
 
@@ -43,7 +44,7 @@
 
 ### Prerequisites
 - Node.js (v18+ recommended)
-- MongoDB Atlas URI
+- Firebase Project (with Firestore and Authentication enabled)
 - Android Studio (for mobile compilation)
 
 ### 1. Clone the repository
@@ -55,20 +56,21 @@ cd ProduX-
 ### 2. Install Dependencies
 **Backend:**
 ```bash
+cd server
 npm install
 ```
 **Frontend:**
 ```bash
-cd client
+cd ../client
 npm install
 ```
 
 ### 3. Environment Setup
-Create a `.env` file in the root directory:
+Create a `.env` file in the `server` directory and add your Firebase credentials:
 ```env
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_super_secret_key
 PORT=5000
+JWT_SECRET=your_super_secret_key
+# Add your Firebase Admin SDK service account variables here
 ```
 Create a `.env` file in the `client` directory:
 ```env
@@ -90,12 +92,12 @@ npm run android:open
 ## 📱 Mobile Architecture
 
 ProduX utilizes a cutting-edge hybrid architecture:
-- **No-Firebase Notifications**: Uses Android Jetpack `WorkManager` and `ForegroundService` written in pure Java to poll and dispatch system tray notifications instantly.
-- **Token Mirroring**: Implements `@capacitor/preferences` to securely mirror JWTs from Web LevelDB to Native SharedPreferences, ensuring the Java runtime has access to authenticated sessions even when the app is killed.
+- **No-Firebase FCM for Local Alarms**: Uses Android Jetpack `WorkManager` and `ForegroundService` written in pure Java to poll and dispatch system tray alarms locally.
+- **Token Mirroring**: Implements `@capacitor/preferences` to securely mirror tokens from Web LevelDB to Native SharedPreferences, ensuring the Java runtime has access to authenticated sessions even when the app is killed.
 
 ## 🤝 Contributing
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**. Please see our [CONTRIBUTING.md](./CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) for more details.
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)

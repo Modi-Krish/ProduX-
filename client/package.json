@@ -1,7 +1,7 @@
 {
   "name": "client",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,8 +17,11 @@
     "@capacitor/core": "^8.3.4",
     "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/push-notifications": "^8.1.1",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.16.0",
+    "firebase": "^12.13.0",
     "framer-motion": "^12.38.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

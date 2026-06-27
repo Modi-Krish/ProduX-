@@ -1,7 +1,19 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as socialApi from '../../api/socialApi';
-import { db, isConfigured } from '../../api/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+
+/**
+ * Social Redux Slice
+ *
+ * BUG-1 FIX: Removed all direct Firestore client-side writes for DMs and group messages.
+ * The 'dms' collection that was being written to on the client is gone.
+ * All messages now flow through the backend API (/api/social/messages and
+ * /api/social/groups/:id/messages) which writes to the single 'messages' collection.
+ *
+ * This eliminates the dual-storage bug where:
+ * - Client wrote to: 'dms' collection (Firestore SDK direct write)
+ * - Backend read from: 'messages' collection (GET /api/social/messages/:userId)
+ * These were two different collections, so history was invisible through the API.
+ */
 
 const initialState = {
   leaderboard: [],
@@ -81,51 +93,34 @@ export const fetchChatMessages = createAsyncThunk(
   }
 );
 
+/**
+ * Send a Direct Message via the backend API.
+ *
+ * BUG-1 FIX: Previously this thunk had a conditional:
+ *   if (isConfigured) { addDoc(collection(db, 'dms'), ...) }
+ *   else { API.post('/social/messages', ...) }
+ *
+ * This caused DMs to go to the 'dms' Firestore collection (client-side), while
+ * the backend's GET /api/social/messages/:userId reads from 'messages'.
+ * The message history was effectively broken for all production users.
+ *
+ * FIX: All DMs now ALWAYS go through the backend API, which stores in 'messages'.
+ * Web push is handled server-side on send (no separate triggerPushNotification call needed).
+ */
 export const sendChatMessage = createAsyncThunk(
   'social/sendMessage',
-  async ({ receiverId, text, fileUrl, fileType, fileName, fileSize }, { getState, rejectWithValue }) => {
+  async ({ receiverId, text, fileUrl, fileType, fileName, fileSize }, { rejectWithValue }) => {
     try {
       const fileData = fileUrl ? { fileUrl, fileType, fileName, fileSize } : {};
-
-      if (isConfigured) {
-        const { auth, social } = getState();
-        const sender = auth.user;
-        const receiver = social.activeChatUser || { _id: receiverId, name: 'Friend' };
-        
-        if (!sender) {
-          throw new Error('You must be logged in to send messages');
-        }
-        
-        const messageData = {
-          senderId: { _id: sender._id, name: sender.name },
-          receiverId: { _id: receiver._id, name: receiver.name },
-          text: text || '',
-          createdAt: new Date().toISOString(),
-          participants: [sender._id, receiver._id],
-          status: 'sent',
-          seenAt: null,
-          ...fileData,
-        };
-        
-        const docRef = await addDoc(collection(db, 'dms'), messageData);
-        
-        // Concurrently dispatch lightweight backend FCM push notification (fire-and-forget)
-        socialApi.triggerPushNotification({ receiverId, text: text || fileName || 'Sent a file' }).catch((err) => {
-          console.warn('FCM Push Notification dispatch failed/skipped:', err.message);
-        });
-
-        return { ...messageData, _id: docRef.id };
-      } else {
-        const res = await socialApi.sendMessage(receiverId, text, fileData);
-        return res.data.data;
-      }
+      // BUG-1 FIX: Always use backend API — no more direct Firestore 'dms' writes
+      const res = await socialApi.sendMessage(receiverId, text, fileData);
+      return res.data.data;
     } catch (err) {
       return rejectWithValue(err.message || err.response?.data?.message || 'Failed to send message');
     }
   }
 );
 
-// ─── MARK MESSAGES AS SEEN THUNK ────────────────────────
 export const markMessagesSeen = createAsyncThunk(
   'social/markMessagesSeen',
   async (senderId, { rejectWithValue }) => {
@@ -138,7 +133,6 @@ export const markMessagesSeen = createAsyncThunk(
   }
 );
 
-// ─── CONVERSATIONS THUNK ────────────────────────────────
 export const fetchConversations = createAsyncThunk(
   'social/fetchConversations',
   async (_, { rejectWithValue }) => {
@@ -189,41 +183,21 @@ export const fetchGroupChatMessages = createAsyncThunk(
   }
 );
 
+/**
+ * Send a group message via backend API.
+ *
+ * BUG-1 FIX: Previously conditionally wrote to 'groupMessages' Firestore collection
+ * client-side when isConfigured was true. Now always uses backend API, which
+ * writes to the 'messages' collection consistently.
+ */
 export const sendGroupChatMessage = createAsyncThunk(
   'social/sendGroupMessage',
-  async ({ groupId, text, fileUrl, fileType, fileName, fileSize }, { getState, rejectWithValue }) => {
+  async ({ groupId, text, fileUrl, fileType, fileName, fileSize }, { rejectWithValue }) => {
     try {
       const fileData = fileUrl ? { fileUrl, fileType, fileName, fileSize } : {};
-
-      if (isConfigured) {
-        const { auth } = getState();
-        const sender = auth.user;
-        
-        if (!sender) {
-          throw new Error('You must be logged in to send messages');
-        }
-        
-        const messageData = {
-          groupId: groupId,
-          senderId: { _id: sender._id, name: sender.name },
-          text: text || '',
-          createdAt: new Date().toISOString(),
-          status: 'sent',
-          ...fileData,
-        };
-        
-        const docRef = await addDoc(collection(db, 'groupMessages'), messageData);
-        
-        // Concurrently dispatch lightweight backend FCM push notification (fire-and-forget)
-        socialApi.triggerPushNotification({ groupId, text: text || fileName || 'Sent a file' }).catch((err) => {
-          console.warn('FCM Push Notification dispatch failed/skipped:', err.message);
-        });
-
-        return { ...messageData, _id: docRef.id };
-      } else {
-        const res = await socialApi.sendGroupMessage(groupId, text, fileData);
-        return res.data.data;
-      }
+      // BUG-1 FIX: Always use backend API — no more direct Firestore 'groupMessages' writes
+      const res = await socialApi.sendGroupMessage(groupId, text, fileData);
+      return res.data.data;
     } catch (err) {
       return rejectWithValue(err.message || err.response?.data?.message || 'Failed to send group message');
     }
@@ -282,7 +256,6 @@ const socialSlice = createSlice({
     },
     socketNewMessage: (state, action) => {
       const msg = action.payload;
-      // Only add if relevant to current DM chat
       if (
         state.activeChatUser &&
         (msg.senderId?._id === state.activeChatUser._id ||
@@ -292,29 +265,23 @@ const socialSlice = createSlice({
         if (!exists) state.messages.push(msg);
       }
     },
-    // Update conversations list in real-time when a new DM arrives
     socketUpdateConversation: (state, action) => {
       const { partnerId, partnerName, partnerLevel, partnerXp, lastMessage, lastMessageAt, lastSenderId, isFromMe } = action.payload;
-      
       const existingIdx = state.conversations.findIndex(
         (c) => c.partnerId === partnerId || c._id === partnerId
       );
-      
+
       if (existingIdx !== -1) {
-        // Update existing conversation
         const conv = { ...state.conversations[existingIdx] };
         conv.lastMessage = lastMessage;
         conv.lastMessageAt = lastMessageAt;
         conv.lastSenderId = lastSenderId;
-        // Only increment unread if the message is NOT from me and I'm NOT currently viewing this chat
         if (!isFromMe && (!state.activeChatUser || state.activeChatUser._id !== partnerId)) {
           conv.unreadCount = (conv.unreadCount || 0) + 1;
         }
-        // Remove from old position and add to top
         state.conversations.splice(existingIdx, 1);
         state.conversations.unshift(conv);
       } else {
-        // New conversation — add to top
         state.conversations.unshift({
           _id: partnerId,
           partnerId,
@@ -328,19 +295,15 @@ const socialSlice = createSlice({
         });
       }
     },
-    // Clear unread count for a specific conversation when user opens it
     clearConversationUnread: (state, action) => {
       const partnerId = action.payload;
       const conv = state.conversations.find(
         (c) => c.partnerId === partnerId || c._id === partnerId
       );
-      if (conv) {
-        conv.unreadCount = 0;
-      }
+      if (conv) conv.unreadCount = 0;
     },
-    // Update message status to 'seen' when receiver opens the chat
     socketMessagesSeen: (state, action) => {
-      const { byUserId, messageIds, seenAt } = action.payload;
+      const { messageIds, seenAt } = action.payload;
       state.messages.forEach((msg) => {
         if (messageIds.includes(msg._id)) {
           msg.status = 'seen';
@@ -351,7 +314,6 @@ const socialSlice = createSlice({
     },
     socketGroupMessage: (state, action) => {
       const msg = action.payload;
-      // Only add if relevant to the currently open group chat
       if (state.activeGroup && msg.groupId === state.activeGroup._id) {
         const exists = state.groupMessages.some((m) => m._id === msg._id);
         if (!exists) state.groupMessages.push(msg);
@@ -405,11 +367,9 @@ const socialSlice = createSlice({
         const exists = state.messages.some((m) => m._id === action.payload._id);
         if (!exists) state.messages.push(action.payload);
       })
-      // Conversations
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.conversations = action.payload;
       })
-      // Groups
       .addCase(fetchGroups.fulfilled, (state, action) => {
         state.groups = action.payload;
       })
@@ -458,4 +418,5 @@ export const {
   setMessages,
   setGroupMessages,
 } = socialSlice.actions;
+
 export default socialSlice.reducer;

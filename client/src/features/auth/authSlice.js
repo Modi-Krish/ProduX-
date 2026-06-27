@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth } from '../../api/firebase';
-import { registerUser, loginUser, getMe, deleteAccountUser } from '../../api/authApi';
+import { registerUser, loginUser, getMe, deleteAccountUser, updateProfileUser } from '../../api/authApi';
 
 // Get user from localStorage
 const user = JSON.parse(localStorage.getItem('user'));
@@ -99,6 +99,24 @@ export const fetchCurrentUser = createAsyncThunk(
       console.error('Fetch Current User Error:', err);
       return rejectWithValue(
         err.response?.data?.message || err.message || 'Failed to fetch profile'
+      );
+    }
+  }
+);
+
+// Update User Profile
+export const updateProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (profileData, { rejectWithValue }) => {
+    try {
+      const res = await updateProfileUser(profileData);
+      const userProfile = res.data.data;
+      localStorage.setItem('user', JSON.stringify(userProfile));
+      return userProfile;
+    } catch (err) {
+      console.error('Update Profile Error:', err);
+      return rejectWithValue(
+        err.response?.data?.message || err.message || 'Failed to update profile'
       );
     }
   }
@@ -203,6 +221,19 @@ const authSlice = createSlice({
         state.token = null;
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+      })
+      // Update Profile
+      .addCase(updateProfile.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
       })
       // Delete Account
       .addCase(deleteAccount.pending, (state) => {

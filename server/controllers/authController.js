@@ -1,5 +1,8 @@
 const { admin, db, formatDoc } = require('../config/firebase');
+const logger = require('../utils/logger');
 
+// ── Constants ─────────────────────────────────────────────
+const MAX_CUSTOM_ID_ATTEMPTS = 15;
 
 /**
  * @desc    Register a new user profile in Firestore (called after Firebase Auth signup)
@@ -15,32 +18,48 @@ const register = async (req, res, next) => {
     const userRef = db.collection('users').doc(userId);
     const userDoc = await userRef.get();
 
+    // Idempotent — if user profile already exists, return it
     if (userDoc.exists) {
       return res.status(200).json({
         success: true,
         data: {
           _id: userDoc.id,
-          ...userDoc.data()
-        }
+          ...userDoc.data(),
+        },
       });
     }
 
-    // Generate a unique customId: PRDX-XXXXXX
-    let isUnique = false;
+    // ── Generate unique customId: PRDX-XXXXXX ──
+    // FIX (BUG-5): Added max attempt guard to prevent infinite loop.
     let generatedId = '';
-    while (!isUnique) {
+    let attempts = 0;
+
+    while (attempts < MAX_CUSTOM_ID_ATTEMPTS) {
       const randomNum = Math.floor(100000 + Math.random() * 900000);
       generatedId = `PRDX-${randomNum}`;
-      
-      const existing = await db.collection('users').where('customId', '==', generatedId).get();
-      if (existing.empty) {
-        isUnique = true;
-      }
+
+      const existing = await db
+        .collection('users')
+        .where('customId', '==', generatedId)
+        .limit(1)
+        .get();
+
+      if (existing.empty) break;
+
+      attempts++;
+      logger.warn('customId collision, retrying', { attempt: attempts, generatedId });
+    }
+
+    if (attempts >= MAX_CUSTOM_ID_ATTEMPTS) {
+      const err = new Error('Failed to generate unique user ID. Please try again.');
+      err.statusCode = 500;
+      err.isOperational = true;
+      return next(err);
     }
 
     const newUser = {
-      name,
-      email: email.toLowerCase(),
+      name: String(name).trim().substring(0, 100),
+      email: String(email).toLowerCase().trim(),
       customId: generatedId,
       xp: 0,
       level: 1,
@@ -51,18 +70,21 @@ const register = async (req, res, next) => {
       badges: [],
       pushSubscriptions: [],
       fcmTokens: [],
+      avatar: null, // Stores R2 attachment object
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     await userRef.set(newUser);
+
+    logger.info('New user registered', { userId, customId: generatedId });
 
     res.status(201).json({
       success: true,
       data: {
         _id: userId,
-        ...newUser
-      }
+        ...newUser,
+      },
     });
   } catch (error) {
     next(error);
@@ -76,10 +98,10 @@ const register = async (req, res, next) => {
  */
 const login = async (req, res, next) => {
   try {
-    // req.user has already been resolved from the Firestore 'users' collection in auth middleware
+    // req.user is already fully resolved from Firestore by the protect middleware
     res.status(200).json({
       success: true,
-      data: req.user
+      data: req.user,
     });
   } catch (error) {
     next(error);
@@ -94,99 +116,185 @@ const login = async (req, res, next) => {
 const getMe = async (req, res) => {
   res.status(200).json({
     success: true,
-    data: req.user
+    data: req.user,
   });
 };
 
 /**
- * @desc    Google login dummy endpoint (deprecated in favor of full Email/Password Firebase client flow)
+ * @desc    Deprecated Google login endpoint.
+ * @route   POST /api/auth/google
  */
-const googleLogin = async (req, res, next) => {
-  res.status(400).json({
+const googleLogin = async (req, res) => {
+  res.status(410).json({
     success: false,
-    message: 'Google auth is disabled. Standard Email/Password Firebase flow is active.'
+    message: 'Google auth is no longer available. Please use Email/Password authentication.',
   });
 };
 
 /**
- * @desc    Delete user account and purge all user data from Firestore & Firebase Auth
- * @route   DELETE /api/auth/delete-account
+ * @desc    Update user profile (name, avatar)
+ * @route   PUT /api/auth/profile
  * @access  Private
  */
-const deleteAccount = async (req, res, next) => {
+const updateProfile = async (req, res, next) => {
   try {
     const userId = req.user._id;
+    const { name, avatar } = req.body;
 
-    // 1. Delete user document from 'users'
-    await db.collection('users').doc(userId).delete();
-
-    // 2. Delete all tasks belonging to the user
-    const tasksSnap = await db.collection('tasks').where('userId', '==', userId).get();
-    const tasksBatch = db.batch();
-    tasksSnap.forEach((doc) => {
-      tasksBatch.delete(doc.ref);
-    });
-    await tasksBatch.commit();
-
-    // 3. Delete all habits belonging to the user
-    const habitsSnap = await db.collection('habits').where('userId', '==', userId).get();
-    const habitsBatch = db.batch();
-    habitsSnap.forEach((doc) => {
-      habitsBatch.delete(doc.ref);
-    });
-    await habitsBatch.commit();
-
-    // 4. Delete all hobbies belonging to the user
-    const hobbiesSnap = await db.collection('hobbies').where('userId', '==', userId).get();
-    const hobbiesBatch = db.batch();
-    hobbiesSnap.forEach((doc) => {
-      hobbiesBatch.delete(doc.ref);
-    });
-    await hobbiesBatch.commit();
-
-    // 5. Delete friendships where user is requester or accepter
-    const friendshipsRequesterSnap = await db.collection('friendships').where('requesterId', '==', userId).get();
-    const friendshipsAccepterSnap = await db.collection('friendships').where('accepterId', '==', userId).get();
-    const friendshipsBatch = db.batch();
-    friendshipsRequesterSnap.forEach((doc) => friendshipsBatch.delete(doc.ref));
-    friendshipsAccepterSnap.forEach((doc) => friendshipsBatch.delete(doc.ref));
-    await friendshipsBatch.commit();
-
-    // 6. Delete messages sent or received by the user
-    const messagesSenderSnap = await db.collection('messages').where('senderId', '==', userId).get();
-    const messagesReceiverSnap = await db.collection('messages').where('receiverId', '==', userId).get();
-    const messagesBatch = db.batch();
-    messagesSenderSnap.forEach((doc) => messagesBatch.delete(doc.ref));
-    messagesReceiverSnap.forEach((doc) => messagesBatch.delete(doc.ref));
-    await messagesBatch.commit();
-
-    // 7. Cleanup groups (delete if creator, remove from members array otherwise)
-    const groupsCreatorSnap = await db.collection('groups').where('creator', '==', userId).get();
-    const groupsCreatorBatch = db.batch();
-    groupsCreatorSnap.forEach((doc) => groupsCreatorBatch.delete(doc.ref));
-    await groupsCreatorBatch.commit();
-
-    const groupsMemberSnap = await db.collection('groups').where('members', 'arrayContains', userId).get();
-    const groupMemberPromises = [];
-    groupsMemberSnap.forEach((doc) => {
-      const data = doc.data();
-      const updatedMembers = (data.members || []).filter(m => m !== userId);
-      groupMemberPromises.push(doc.ref.update({ members: updatedMembers }));
-    });
-    if (groupMemberPromises.length > 0) {
-      await Promise.all(groupMemberPromises);
+    const updateData = { updatedAt: new Date() };
+    if (name !== undefined) {
+      updateData.name = String(name).trim().substring(0, 100);
+    }
+    if (avatar !== undefined) {
+      updateData.avatar = avatar; // Expected object: { url, objectKey, fileName, etc }
     }
 
-    // 8. Delete user from Firebase Auth
-    await admin.auth().deleteUser(userId);
+    const userRef = db.collection('users').doc(userId);
+    await userRef.update(updateData);
 
+    const updatedSnap = await userRef.get();
     res.status(200).json({
       success: true,
-      message: 'Account and all associated data have been permanently deleted.'
+      data: { _id: userId, ...updatedSnap.data() },
     });
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = { register, login, getMe, googleLogin, deleteAccount };
+/**
+ * @desc    Delete user account and purge all user data from Firestore & Firebase Auth
+ * @route   DELETE /api/auth/delete-account
+ * @access  Private
+ *
+ * FIX (BUG-2): Corrected field names from 'requesterId'/'accepterId' to
+ * 'requester'/'recipient' to match the actual Firestore document schema
+ * used when creating friendships in socialController.js.
+ */
+const deleteAccount = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    logger.info('Account deletion initiated', { userId });
+
+    const { deleteUserDirectory } = require('../services/storageService');
+    
+    // Clear out user files from R2
+    try {
+      await deleteUserDirectory(userId);
+    } catch (err) {
+      logger.warn(`Could not completely delete R2 directory for user ${userId}`, { error: err.message });
+    }
+
+    // 1. Finally delete the user document
+    await db.collection('users').doc(userId).delete();
+
+    // 2. Delete all tasks belonging to the user
+    const tasksSnap = await db.collection('tasks').where('userId', '==', userId).get();
+    if (!tasksSnap.empty) {
+      const tasksBatch = db.batch();
+      tasksSnap.forEach((doc) => tasksBatch.delete(doc.ref));
+      await tasksBatch.commit();
+    }
+
+    // 3. Delete all habits belonging to the user
+    const habitsSnap = await db.collection('habits').where('userId', '==', userId).get();
+    if (!habitsSnap.empty) {
+      const habitsBatch = db.batch();
+      habitsSnap.forEach((doc) => habitsBatch.delete(doc.ref));
+      await habitsBatch.commit();
+    }
+
+    // 4. Delete all hobbies belonging to the user
+    const hobbiesSnap = await db.collection('hobbies').where('userId', '==', userId).get();
+    if (!hobbiesSnap.empty) {
+      const hobbiesBatch = db.batch();
+      hobbiesSnap.forEach((doc) => hobbiesBatch.delete(doc.ref));
+      await hobbiesBatch.commit();
+    }
+
+    // 5. Delete friendships where user is requester or recipient
+    // FIX (BUG-2): Corrected field names: 'requester' and 'recipient'
+    // (was incorrectly using 'requesterId' and 'accepterId' which don't exist in the schema)
+    const friendshipsRequesterSnap = await db
+      .collection('friendships')
+      .where('requester', '==', userId)  // FIXED: was 'requesterId'
+      .get();
+    const friendshipsRecipientSnap = await db
+      .collection('friendships')
+      .where('recipient', '==', userId)  // FIXED: was 'accepterId'
+      .get();
+
+    if (!friendshipsRequesterSnap.empty || !friendshipsRecipientSnap.empty) {
+      const friendshipsBatch = db.batch();
+      friendshipsRequesterSnap.forEach((doc) => friendshipsBatch.delete(doc.ref));
+      friendshipsRecipientSnap.forEach((doc) => friendshipsBatch.delete(doc.ref));
+      await friendshipsBatch.commit();
+    }
+
+    // 6. Delete messages sent or received by the user
+    const messagesSenderSnap = await db
+      .collection('messages')
+      .where('senderId', '==', userId)
+      .get();
+    const messagesReceiverSnap = await db
+      .collection('messages')
+      .where('receiverId', '==', userId)
+      .get();
+
+    if (!messagesSenderSnap.empty || !messagesReceiverSnap.empty) {
+      const messagesBatch = db.batch();
+      messagesSenderSnap.forEach((doc) => messagesBatch.delete(doc.ref));
+      messagesReceiverSnap.forEach((doc) => messagesBatch.delete(doc.ref));
+      await messagesBatch.commit();
+    }
+
+    // 7. Cleanup groups — delete groups the user created, remove from member lists otherwise
+    const groupsCreatorSnap = await db
+      .collection('groups')
+      .where('creator', '==', userId)
+      .get();
+    if (!groupsCreatorSnap.empty) {
+      const groupsCreatorBatch = db.batch();
+      groupsCreatorSnap.forEach((doc) => groupsCreatorBatch.delete(doc.ref));
+      await groupsCreatorBatch.commit();
+    }
+
+    const groupsMemberSnap = await db
+      .collection('groups')
+      .where('members', 'array-contains', userId)
+      .get();
+    if (!groupsMemberSnap.empty) {
+      const groupMemberPromises = [];
+      groupsMemberSnap.forEach((doc) => {
+        const data = doc.data();
+        const updatedMembers = (data.members || []).filter((m) => m !== userId);
+        groupMemberPromises.push(
+          doc.ref.update({ members: updatedMembers, updatedAt: new Date() })
+        );
+      });
+      await Promise.all(groupMemberPromises);
+    }
+
+    // 8. Delete user from Firebase Auth (must be last)
+    await admin.auth().deleteUser(userId);
+
+    logger.info('Account deletion completed', { userId });
+
+    res.status(200).json({
+      success: true,
+      message: 'Account and all associated data have been permanently deleted.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  register,
+  login,
+  getMe,
+  googleLogin,
+  deleteAccount,
+  updateProfile,
+};

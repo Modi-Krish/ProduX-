@@ -1,132 +1,74 @@
-/**
- * Firebase Storage file uploader for chat attachments.
- * Uploads files to Firebase Storage and returns the download URL.
- */
-import { ref, uploadBytesResumable, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage, isConfigured } from '../api/firebase';
+import API from '../api/axios';
+import axios from 'axios';
 
 /**
- * Upload a file to Firebase Storage for chat.
+ * Determine the file category based on MIME type
+ */
+const getFileCategory = (mimeType) => {
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  if (mimeType.startsWith('audio/')) return 'audio';
+  return 'document';
+};
+
+/**
+ * Universal file uploader using Cloudflare R2 presigned URLs.
  *
  * @param {File} file - The file to upload
- * @param {'dm' | 'group'} chatType - Type of chat
- * @param {string} chatId - The chat partner ID or group ID
+ * @param {string} folder - Target folder in bucket (e.g. 'avatars', 'chat', 'tasks')
  * @param {(progress: number) => void} [onProgress] - Progress callback (0-100)
- * @returns {Promise<{ url: string, fileName: string, fileSize: number, fileType: string }>}
+ * @returns {Promise<{ url: string, objectKey: string, fileName: string, fileSize: number, fileType: string }>}
+ */
+export const uploadFileToR2 = async (file, folder, onProgress) => {
+  try {
+    const category = getFileCategory(file.type);
+    
+    // 1. Get presigned URL from backend
+    const presignRes = await API.post('/storage/presign', {
+      originalName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      size: file.size,
+      category,
+      folder,
+    });
+
+    const { signedUrl, publicUrl, objectKey } = presignRes.data.data;
+
+    // 2. Upload file directly to Cloudflare R2 using the presigned URL
+    // We use a plain axios instance here to prevent attaching our API JWT token
+    // to the Cloudflare S3 request (which causes Signature Does Not Match errors)
+    await axios.put(signedUrl, file, {
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percentCompleted);
+        }
+      },
+    });
+
+    return {
+      url: publicUrl,
+      objectKey,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type || 'application/octet-stream',
+    };
+  } catch (error) {
+    console.error('[FileUploader] Upload failed:', error);
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw new Error('File upload failed. Please check your connection and try again.');
+  }
+};
+
+/**
+ * Helper specifically for Chat, to replace the old Firebase `uploadChatFile` usage
+ * @deprecated Use `uploadFileToR2` directly instead.
  */
 export const uploadChatFile = (file, chatType, chatId, onProgress) => {
-  return new Promise((resolve, reject) => {
-    if (!isConfigured || !storage) {
-      reject(new Error('Firebase Storage is not configured. File uploads are unavailable.'));
-      return;
-    }
-
-    const timestamp = Date.now();
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const storagePath = `chat-files/${chatType}/${chatId}/${timestamp}_${sanitizedName}`;
-    const storageRef = ref(storage, storagePath);
-
-    console.log(`[FileUploader] Starting upload: ${file.name} (${(file.size / 1024).toFixed(1)} KB, ${file.type}) -> ${storagePath}`);
-
-    const metadata = {
-      contentType: file.type || 'application/octet-stream',
-      customMetadata: {
-        originalName: file.name,
-        chatType,
-        chatId,
-      },
-    };
-
-    // Track whether progress has ever fired (some browsers/WebViews don't support resumable)
-    let hasProgressFired = false;
-    let progressStallTimer = null;
-
-    const uploadTask = uploadBytesResumable(storageRef, file, metadata);
-
-    // If no progress fires within 10 seconds, fall back to simple upload
-    progressStallTimer = setTimeout(() => {
-      if (!hasProgressFired) {
-        console.warn('[FileUploader] Resumable upload progress never fired — falling back to simple upload.');
-        uploadTask.cancel();
-        
-        // Fallback: use simple uploadBytes (non-resumable but more compatible)
-        uploadBytes(storageRef, file, metadata)
-          .then(async (snapshot) => {
-            if (onProgress) onProgress(100);
-            try {
-              const url = await getDownloadURL(snapshot.ref);
-              console.log('[FileUploader] Fallback upload succeeded:', url);
-              resolve({
-                url,
-                fileName: file.name,
-                fileSize: file.size,
-                fileType: file.type,
-              });
-            } catch (urlErr) {
-              console.error('[FileUploader] Fallback: failed to get download URL:', urlErr);
-              reject(new Error('Failed to get file URL after upload.'));
-            }
-          })
-          .catch((fallbackErr) => {
-            console.error('[FileUploader] Fallback upload also failed:', fallbackErr);
-            reject(new Error(`File upload failed: ${fallbackErr.code || fallbackErr.message}`));
-          });
-      }
-    }, 10000);
-
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        hasProgressFired = true;
-        if (progressStallTimer) {
-          clearTimeout(progressStallTimer);
-          progressStallTimer = null;
-        }
-        const progress = Math.round(
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-        );
-        console.log(`[FileUploader] Progress: ${progress}% (${snapshot.bytesTransferred}/${snapshot.totalBytes})`);
-        if (onProgress) onProgress(progress);
-      },
-      (error) => {
-        if (progressStallTimer) {
-          clearTimeout(progressStallTimer);
-          progressStallTimer = null;
-        }
-        // Don't reject on cancel if we're falling back
-        if (error.code === 'storage/canceled' && !hasProgressFired) {
-          return; // fallback will handle it
-        }
-        console.error('[FileUploader] Upload failed:', error.code, error.message);
-        let userMessage = 'File upload failed. Please try again.';
-        if (error.code === 'storage/unauthorized') {
-          userMessage = 'Upload permission denied. Firebase Storage rules may need to be updated.';
-        } else if (error.code === 'storage/quota-exceeded') {
-          userMessage = 'Storage quota exceeded.';
-        } else if (error.code === 'storage/retry-limit-exceeded') {
-          userMessage = 'Upload failed due to network issues. Please check your connection.';
-        }
-        reject(new Error(userMessage));
-      },
-      async () => {
-        if (progressStallTimer) {
-          clearTimeout(progressStallTimer);
-          progressStallTimer = null;
-        }
-        try {
-          const url = await getDownloadURL(uploadTask.snapshot.ref);
-          console.log('[FileUploader] Upload complete:', url);
-          resolve({
-            url,
-            fileName: file.name,
-            fileSize: file.size,
-            fileType: file.type,
-          });
-        } catch (err) {
-          console.error('[FileUploader] Failed to get download URL:', err);
-          reject(new Error('Failed to get file URL after upload.'));
-        }
-      }
-    );
-  });
+  return uploadFileToR2(file, 'chat', onProgress);
 };

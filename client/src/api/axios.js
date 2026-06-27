@@ -9,7 +9,8 @@ const API = axios.create({
 API.interceptors.request.use(async (config) => {
   if (auth && auth.currentUser) {
     try {
-      const token = await auth.currentUser.getIdToken(true);
+      // Pass false (or nothing) so Firebase only refreshes the token if it's expired
+      const token = await auth.currentUser.getIdToken();
       config.headers.Authorization = `Bearer ${token}`;
     } catch (err) {
       console.error('Failed to retrieve Firebase ID token:', err);

@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { HiX, HiUser, HiMail, HiCalendar, HiShieldCheck, HiTrash } from 'react-icons/hi';
 import { useSelector, useDispatch } from 'react-redux';
-import { deleteAccount } from '../features/auth/authSlice';
+import { deleteAccount, updateProfile } from '../features/auth/authSlice';
 import toast from 'react-hot-toast';
+import FileUploadDropzone from './common/FileUploadDropzone';
 
 const ProfileModal = ({ onClose }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { summary } = useSelector((state) => state.dashboard);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isEditingAvatar, setIsEditingAvatar] = useState(false);
 
   const handleDeleteAccount = async () => {
     try {
@@ -79,8 +81,18 @@ const ProfileModal = ({ onClose }) => {
         </div>
 
         <div className="profile-info">
-          <div className="profile-avatar-large">
-            {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+          <div 
+            className="profile-avatar-large" 
+            style={{ 
+              cursor: 'pointer', 
+              backgroundImage: user?.avatar?.publicUrl ? `url(${user.avatar.publicUrl})` : 'none',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+            onClick={() => setIsEditingAvatar(!isEditingAvatar)}
+            title="Click to change avatar"
+          >
+            {!user?.avatar?.publicUrl && user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
           </div>
           <div className="profile-details">
             <h3>{user?.name}</h3>
@@ -114,6 +126,26 @@ const ProfileModal = ({ onClose }) => {
             )}
           </div>
         </div>
+
+        {isEditingAvatar && (
+          <div style={{ marginTop: '1rem', padding: '10px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+            <h4 style={{ marginBottom: '10px' }}>Upload New Avatar</h4>
+            <FileUploadDropzone
+              folder="avatars"
+              accept="image/*"
+              maxSizeMB={5}
+              onUploadSuccess={(fileData) => {
+                dispatch(updateProfile({ avatar: fileData }))
+                  .unwrap()
+                  .then(() => {
+                    toast.success('Avatar updated successfully!');
+                    setIsEditingAvatar(false);
+                  })
+                  .catch((err) => toast.error(err));
+              }}
+            />
+          </div>
+        )}
 
         <div className="profile-stats-mini">
           <div className="mini-stat">

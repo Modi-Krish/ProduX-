@@ -1,13 +1,17 @@
-// server/routes/aiRoutes.js
 const express = require('express');
 const router = express.Router();
 const { generateSubtasks, generateFocusWarning } = require('../controllers/aiController');
 const { protect } = require('../middlewares/auth');
+const { aiLimiter } = require('../middlewares/rateLimiter');
 
-// Protected route for subtask breakdown (called by React web app)
-router.post('/breakdown', protect, generateSubtasks);
+// FIX (EXT-1 / SEC-16): Both AI routes now require Firebase Auth token.
+// The Chrome extension MUST include a valid Authorization: Bearer <token> header.
+// This prevents unauthenticated Gemini API calls that could exhaust quota.
 
-// Public route for Chrome extension coaching warnings (easier for extension to query without login session)
+router.use(protect);
+router.use(aiLimiter); // Strict rate limiting — 20 requests per 10 minutes
+
+router.post('/breakdown', generateSubtasks);
 router.post('/coach', generateFocusWarning);
 
 module.exports = router;

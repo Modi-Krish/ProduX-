@@ -1,0 +1,104 @@
+.file-upload-dropzone {
+  border: 2px dashed var(--border-color, #444);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  background-color: var(--bg-secondary, #222);
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.dropzone-area {
+  cursor: pointer;
+  padding: 20px;
+}
+
+.dropzone-area p {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary, #ddd);
+}
+
+.dropzone-sub {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted, #888);
+  margin-top: 5px;
+}
+
+.dropzone-area:hover {
+  background-color: var(--bg-tertiary, #333);
+}
+
+.file-preview-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.preview-image {
+  max-width: 150px;
+  max-height: 150px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.file-icon {
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  padding: 10px 20px;
+  border-radius: 8px;
+}
+
+.file-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+.file-actions button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-upload {
+  background-color: var(--accent, #6200ea);
+  color: white;
+}
+
+.btn-cancel {
+  background-color: var(--danger, #e53935);
+  color: white;
+}
+
+.upload-progress-container {
+  width: 100%;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  height: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-progress-bar {
+  height: 100%;
+  background: var(--accent, #6200ea);
+  transition: width 0.3s ease;
+}
+
+.upload-progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: bold;
+}

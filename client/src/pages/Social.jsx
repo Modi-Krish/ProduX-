@@ -354,6 +354,7 @@ const Social = () => {
           fileType: result.fileType,
           fileName: result.fileName,
           fileSize: result.fileSize,
+          objectKey: result.objectKey,
         };
       } catch (err) {
         console.error('[Upload] Failed:', err);

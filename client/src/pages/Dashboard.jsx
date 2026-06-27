@@ -27,19 +27,13 @@ const Dashboard = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [filter, setFilter] = useState('All');
-  const [tick, setTick] = useState(0);
   const [showBadges, setShowBadges] = useState(false);
 
   // Connect socket
   useSocket();
 
-  // Dynamic Ticker: Update priority/deadlines every minute without refresh
   useEffect(() => {
-    const timer = setInterval(() => setTick((t) => t + 1), 60000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
+    // Only fetch on mount. Socket events handle real-time updates.
     dispatch(fetchAllTasks());
     dispatch(getDashboard());
     dispatch(getGamificationStats());
@@ -50,7 +44,7 @@ const Dashboard = () => {
       await dispatch(addTask(data)).unwrap();
       setShowForm(false);
       toast.success('Task created!');
-      dispatch(getDashboard());
+      // Server socket handles updating dashboard/gamification
     } catch (err) {
       toast.error(err || 'Failed to create task');
     }
@@ -61,44 +55,23 @@ const Dashboard = () => {
       await dispatch(editTask({ id: editingTask._id, data })).unwrap();
       setEditingTask(null);
       toast.success('Task updated!');
-      dispatch(getDashboard());
-      // Refresh gamification stats after edit (may have completed a task)
-      dispatch(getGamificationStats());
     } catch (err) {
       toast.error(err || 'Failed to update task');
     }
   };
 
-  // 1. Enrich tasks with current priority (Real-time dynamic calc)
-  const enrichedTasks = tasks.map(task => {
-    const now = new Date();
-    const deadline = new Date(task.deadline);
-    const hoursLeft = (deadline - now) / (1000 * 60 * 60);
-    
-    let score = 20;
-    if (task.status === 'Completed') score = 0;
-    else if (hoursLeft < 0) score = 100;
-    else if (hoursLeft <= 6) score = 90;
-    else if (hoursLeft <= 24) score = 70;
-    else if (hoursLeft <= 72) score = 50;
-    else if (hoursLeft <= 168) score = 35;
-
-    return {
-      ...task,
-      priorityScore: score,
-      isOverdue: hoursLeft < 0 && task.status !== 'Completed'
-    };
-  });
-
-  // 2. Sort by priority score (desc) then by deadline (asc)
-  const sortedTasks = [...enrichedTasks].sort((a, b) => {
+  // 1. Sort by priority score (desc) then by deadline (asc)
+  // FIX: Priority is calculated by backend, removed redundant client-side calculation
+  const sortedTasks = [...tasks].sort((a, b) => {
     if (b.priorityScore !== a.priorityScore) {
-      return b.priorityScore - a.priorityScore;
+      return b.priorityScore - (a.priorityScore || 0);
     }
-    return new Date(a.deadline) - new Date(b.deadline);
+    const deadlineA = a.deadline ? new Date(a.deadline).getTime() : Infinity;
+    const deadlineB = b.deadline ? new Date(b.deadline).getTime() : Infinity;
+    return deadlineA - deadlineB;
   });
 
-  // 3. Filter
+  // 2. Filter
   const filteredTasks = sortedTasks.filter((task) => {
     if (filter === 'All') return true;
     if (filter === 'Overdue') return task.isOverdue;

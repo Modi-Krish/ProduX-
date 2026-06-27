@@ -3,15 +3,33 @@
 const statusEl = document.getElementById('status');
 const setupSection = document.getElementById('setup-section');
 const activeSection = document.getElementById('active-section');
+const settingsSection = document.getElementById('settings-section');
+
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
+
 const focusUrlInput = document.getElementById('focusUrl');
 const durationSelect = document.getElementById('duration');
+const apiUrlInput = document.getElementById('apiUrl');
+const apiTokenInput = document.getElementById('apiToken');
+
 const timeLeftEl = document.getElementById('timeLeft');
 const focusScoreEl = document.getElementById('focusScore');
 const distractionsEl = document.getElementById('distractions');
 
 let updateInterval = null;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  // Load settings
+  chrome.storage.local.get(['apiUrl', 'apiToken'], (data) => {
+    if (data.apiUrl) apiUrlInput.value = data.apiUrl;
+    if (data.apiToken) apiTokenInput.value = data.apiToken;
+  });
+  loadState();
+});
 
 // Load current state
 function loadState() {
@@ -36,6 +54,7 @@ function showIdleState() {
   statusEl.textContent = 'Not monitoring';
   setupSection.style.display = 'block';
   activeSection.style.display = 'none';
+  settingsSection.style.display = 'none';
   clearInterval(updateInterval);
 }
 
@@ -44,6 +63,7 @@ function showActiveState(data) {
   statusEl.textContent = `🟢 Monitoring: ${data.focusUrl}`;
   setupSection.style.display = 'none';
   activeSection.style.display = 'block';
+  settingsSection.style.display = 'none';
 
   updateStats(data);
 
@@ -99,22 +119,28 @@ startBtn.addEventListener('click', () => {
     return;
   }
 
-  const endTime = Date.now() + minutes * 60 * 1000;
+  // Ensure they have API config if they want AI coach
+  chrome.storage.local.get(['apiToken'], (data) => {
+    if (!data.apiToken) {
+      statusEl.className = 'status-bar warning';
+      statusEl.textContent = 'Configure API token in Settings first!';
+      return;
+    }
 
-  chrome.storage.local.set({
-    focusActive: true,
-    focusUrl: focusUrl,
-    focusEndTime: endTime,
-    focusDuration: minutes,
-    distractionCount: 0,
-    totalChecks: 0,
-    focusChecks: 0,
+    const state = {
+      focusActive: true,
+      focusUrl,
+      focusEndTime: Date.now() + minutes * 60000,
+      distractionCount: 0,
+      totalChecks: 0,
+      focusChecks: 0,
+    };
+  
+    chrome.storage.local.set(state, () => {
+      chrome.alarms.create('focusCheck', { periodInMinutes: 0.5 }); // Check every 30s
+      showActiveState(state);
+    });
   });
-
-  // Start the background alarm to check every 15 seconds
-  chrome.alarms.create('focusCheck', { periodInMinutes: 0.25 });
-
-  loadState();
 });
 
 // Stop monitoring
@@ -124,5 +150,30 @@ stopBtn.addEventListener('click', () => {
   showIdleState();
 });
 
-// Initialize
-loadState();
+// Toggle Settings
+toggleSettingsBtn.addEventListener('click', () => {
+  if (settingsSection.style.display === 'none') {
+    settingsSection.style.display = 'block';
+    setupSection.style.display = 'none';
+  } else {
+    settingsSection.style.display = 'none';
+    setupSection.style.display = 'block';
+  }
+});
+
+// Save Settings
+saveSettingsBtn.addEventListener('click', () => {
+  const apiUrl = apiUrlInput.value.trim();
+  const apiToken = apiTokenInput.value.trim();
+  
+  chrome.storage.local.set({ apiUrl, apiToken }, () => {
+    statusEl.className = 'status-bar active';
+    statusEl.textContent = 'Settings saved!';
+    setTimeout(() => {
+      settingsSection.style.display = 'none';
+      setupSection.style.display = 'block';
+      statusEl.className = 'status-bar idle';
+      statusEl.textContent = 'Not monitoring';
+    }, 1500);
+  });
+});

@@ -11,6 +11,8 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Social from './pages/Social';
 import ProtectedRoute from './components/ProtectedRoute';
+import { auth } from './api/firebase';
+import { onIdTokenChanged } from 'firebase/auth';
 
 function App() {
   const dispatch = useDispatch();
@@ -71,7 +73,26 @@ function App() {
       Preferences.remove({ key: 'token' });
       Preferences.remove({ key: 'user' });
     }
-  }, [token, user, isInitialized, dispatch]);
+  }, [token, isInitialized, dispatch]); // Removed user from deps to avoid infinite loops if fetchCurrentUser updates user
+
+  // 3. Listen to Firebase Auth for automatic token refresh (prevents 1-hour automatic logouts)
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const newToken = await firebaseUser.getIdToken();
+          // If the token changed, dispatch an update to Redux
+          if (newToken && newToken !== token) {
+            dispatch(restoreCredentials({ token: newToken, user }));
+          }
+        } catch (err) {
+          console.error('Error refreshing token in background:', err);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [auth, token, user, dispatch]);
 
 
   // Request native notification access immediately on app startup

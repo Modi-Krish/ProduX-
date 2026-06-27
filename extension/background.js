@@ -5,7 +5,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== 'focusCheck') return;
 
   chrome.storage.local.get(
-    ['focusActive', 'focusUrl', 'focusEndTime', 'distractionCount', 'totalChecks', 'focusChecks'],
+    ['focusActive', 'focusUrl', 'focusEndTime', 'distractionCount', 'totalChecks', 'focusChecks', 'apiUrl', 'apiToken'],
     (data) => {
       if (!data.focusActive) {
         chrome.alarms.clear('focusCheck');
@@ -44,11 +44,26 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         });
 
         if (!isFocused) {
+          const apiUrl = data.apiUrl || 'http://localhost:5000';
+          const token = data.apiToken || '';
+          
+          if (!token) {
+            chrome.notifications.create('focus-warning-' + Date.now(), {
+              type: 'basic',
+              iconUrl: 'icon.png',
+              title: '⚠️ You\'re Off Focus!',
+              message: `Get back to ${data.focusUrl}! (Configure API token for AI Coach)`,
+              priority: 2,
+            });
+            return;
+          }
+
           // Fetch context-aware AI warning from server
-          fetch('http://localhost:5000/api/ai/coach', {
+          fetch(`${apiUrl}/api/ai/coach`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
               intendedFocus: data.focusUrl,
@@ -92,5 +107,7 @@ chrome.runtime.onInstalled.addListener(() => {
     distractionCount: 0,
     totalChecks: 0,
     focusChecks: 0,
+    apiUrl: 'http://localhost:5000',
+    apiToken: ''
   });
 });

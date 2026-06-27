@@ -18,8 +18,14 @@
     .header {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      justify-content: space-between;
       margin-bottom: 1rem;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .header h1 {
@@ -29,6 +35,13 @@
 
     .header span {
       font-size: 1.5rem;
+    }
+
+    .settings-icon {
+      cursor: pointer;
+      font-size: 1.2rem;
+      background: none;
+      border: none;
     }
 
     .status-bar {
@@ -124,6 +137,18 @@
       transform: translateY(-2px);
     }
 
+    .btn-save {
+      background: #10B981;
+      color: white;
+      box-shadow: 4px 4px 0px #1A1625;
+      margin-top: 0.5rem;
+    }
+    
+    .btn-save:hover {
+      transform: translateY(-2px);
+      box-shadow: 6px 6px 0px #1A1625;
+    }
+
     .stats {
       display: flex;
       gap: 0.5rem;
@@ -157,12 +182,22 @@
       font-size: 0.7rem;
       color: #94A3B8;
     }
+    
+    #settings-section {
+      background: white;
+      padding: 1rem;
+      border-radius: 12px;
+      border: 2px solid #E2E8F0;
+    }
   </style>
 </head>
 <body>
   <div class="header">
-    <span>🛡️</span>
-    <h1>ProduX Focus Guard</h1>
+    <div class="header-left">
+      <span>🛡️</span>
+      <h1>ProduX Focus Guard</h1>
+    </div>
+    <button class="settings-icon" id="toggleSettingsBtn" title="Settings">⚙️</button>
   </div>
 
   <div id="status" class="status-bar idle">
@@ -187,6 +222,20 @@
     </div>
 
     <button class="btn btn-start" id="startBtn">🚀 Start Monitoring</button>
+  </div>
+  
+  <div id="settings-section" style="display: none;">
+    <h3 style="margin-bottom: 0.75rem; font-size: 0.95rem;">API Configuration</h3>
+    <div class="form-group">
+      <label>ProduX API URL</label>
+      <input type="text" id="apiUrl" placeholder="https://api.yourdomain.com" value="http://localhost:5000" />
+    </div>
+    <div class="form-group">
+      <label>Firebase Auth Token</label>
+      <input type="password" id="apiToken" placeholder="eyJhbGciOi..." />
+      <p style="font-size: 0.6rem; color: #64748B; margin-top: 4px;">Used for AI coach authentication. Copy from web app.</p>
+    </div>
+    <button class="btn btn-save" id="saveSettingsBtn">Save Settings</button>
   </div>
 
   <div id="active-section" style="display: none;">

@@ -100,6 +100,11 @@ const sendNativeNotification = async (title, body) => {
 /**
  * Custom hook that manages socket connection lifecycle and
  * dispatches Redux actions on incoming socket events.
+ * 
+ * FIX: Removed `dispatch(getDashboard())` from task socket events.
+ * Triggering a full dashboard API fetch on every single task update/creation
+ * caused severe spam and double-fetching. Task state is updated in redux by the
+ * socket actions directly.
  */
 const useSocket = () => {
   const dispatch = useDispatch();
@@ -149,17 +154,14 @@ const useSocket = () => {
     // Listen for task events
     socket.on('task_created', (task) => {
       dispatch(socketTaskCreated(task));
-      dispatch(getDashboard());
     });
 
     socket.on('task_updated', (task) => {
       dispatch(socketTaskUpdated(task));
-      dispatch(getDashboard());
     });
 
     socket.on('task_deleted', (data) => {
       dispatch(socketTaskDeleted(data));
-      dispatch(getDashboard());
     });
 
     // Listen for gamification events

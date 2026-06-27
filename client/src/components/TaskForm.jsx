@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { HiX } from 'react-icons/hi';
 import { toast } from 'react-hot-toast';
 import { useAiWorkflow } from '../hooks/useAiWorkflow';
+import FileUploadDropzone from './common/FileUploadDropzone';
 
 const CATEGORIES = ['General', 'Work', 'Personal', 'Study', 'Health', 'Finance', 'Other'];
 
@@ -16,6 +17,7 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
     repeat: initialData?.repeat || 'None',
     is21DayChallenge: initialData?.is21DayChallenge || false,
     alarmTime: initialData?.alarmTime ? new Date(initialData.alarmTime).toISOString().slice(0, 16) : '',
+    attachments: initialData?.attachments || [],
   });
 
   const [newSubtask, setNewSubtask] = useState('');
@@ -221,6 +223,45 @@ const TaskForm = ({ onSubmit, onClose, initialData = null, isLoading = false }) 
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Attachments Section */}
+          <div className="form-group">
+            <label className="form-label">Attachments (Optional)</label>
+            <FileUploadDropzone
+              folder="tasks"
+              maxSizeMB={10}
+              onUploadSuccess={(fileData) => {
+                setFormData(prev => ({
+                  ...prev,
+                  attachments: [...prev.attachments, fileData]
+                }));
+                toast.success('File attached!');
+              }}
+            />
+            {formData.attachments.length > 0 && (
+              <div className="subtasks-preview-list" style={{ marginTop: '10px' }}>
+                {formData.attachments.map((file, index) => (
+                  <div key={index} className="subtask-preview-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'var(--muted)', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                    <a href={file.fileUrl || file.publicUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '0.9rem' }}>
+                      📎 {file.fileName}
+                    </a>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          attachments: prev.attachments.filter((_, i) => i !== index)
+                        }));
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Task Type — only on create */}

@@ -58,7 +58,17 @@ const Navbar = () => {
           <div className="nav-divider" />
 
           <div className="navbar-user" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }}>
-            <div className="navbar-avatar">{getInitials(user?.name)}</div>
+            <div 
+              className="navbar-avatar"
+              style={{
+                backgroundImage: user?.avatar?.publicUrl ? `url(${user.avatar.publicUrl})` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                color: user?.avatar?.publicUrl ? 'transparent' : undefined,
+              }}
+            >
+              {!user?.avatar?.publicUrl && getInitials(user?.name)}
+            </div>
             <span className="user-name">{user?.name}</span>
           </div>
           <button className="btn btn-ghost" onClick={handleLogout} title="Logout">

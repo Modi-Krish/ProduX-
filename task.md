@@ -1,0 +1,10 @@
+- `[x]` Split `server/controllers/socialController.js` into three separate controllers
+- `[x]` Create `messageController.js` for DM and Group chat
+- `[x]` Create `pushController.js` for Web Push and FCM tokens
+- `[x]` Update `socialRoutes.js` and `aiRoutes.js` to use new controllers and add rate limits
+- `[x]` Update `client/src/features/social/socialSlice.js` to remove client-side direct Firestore writes for DMs (fix dual-storage bug)
+- `[x]` Update `client/src/pages/Dashboard.jsx` to remove inline priority calculation and fix double fetch
+- `[x]` Update `client/src/hooks/useSocket.js` to fix `getDashboard` spam on every task change
+- `[x]` Update `extension/background.js`, `popup.js`, and `popup.html` to support configurable API URL and Authentication token (no longer hardcoded to localhost:5000)
+- `[x]` Add `.github/workflows/ci.yml` for automated CI/CD
+- `[x]` Add Jest unit tests for `priorityService` and `gamificationService`

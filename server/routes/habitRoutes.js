@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createHabit, getHabits, completeHabit, deleteHabit } = require('../controllers/habitController');
+const { createHabit, getHabits, completeHabit, deactivateHabit } = require('../controllers/habitController');
 const { protect } = require('../middlewares/auth');
 
 router.use(protect);
@@ -10,7 +10,7 @@ router.route('/')
   .post(createHabit);
 
 router.route('/:id')
-  .delete(deleteHabit);
+  .delete(deactivateHabit);
 
 router.post('/:id/complete', completeHabit);
 

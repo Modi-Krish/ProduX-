@@ -1,54 +1,41 @@
 /**
- * Global error handler middleware
+ * Global Error Handler Middleware
+ *
+ * FIX (CODE-4): Removed all Mongoose-specific error handlers (ValidationError,
+ * code 11000 duplicate key, CastError, JWT errors). This project uses Firestore,
+ * not MongoDB/Mongoose. Those handlers were dead code that created misleading
+ * error messages for non-existent error types.
+ *
+ * Added: Winston structured logging, request context in error logs.
  */
+
+const logger = require('../utils/logger');
+
 const errorHandler = (err, req, res, next) => {
-  console.error('❌ Error Stack:', err.stack || err);
+  // Log the full error stack server-side — never leak this to the client
+  logger.error('Unhandled Error', {
+    message: err.message,
+    stack: err.stack,
+    method: req.method,
+    path: req.originalUrl,
+    userId: req.user?._id || 'unauthenticated',
+    statusCode: err.statusCode,
+  });
 
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const messages = Object.values(err.errors).map((e) => e.message);
-    return res.status(400).json({
-      success: false,
-      message: messages.join(', '),
-    });
-  }
+  // Use a custom statusCode if attached to the error object, otherwise 500
+  const statusCode = err.statusCode || 500;
 
-  // Mongoose duplicate key error
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
-    return res.status(400).json({
-      success: false,
-      message: `An account with this ${field} already exists`,
-    });
-  }
+  // In production, never expose raw internal error messages for 5xx errors
+  const isOperational = err.isOperational || statusCode < 500;
+  const message = isOperational
+    ? err.message || 'Something went wrong'
+    : 'Internal Server Error';
 
-  // Mongoose cast error (invalid ObjectId)
-  if (err.name === 'CastError') {
-    return res.status(400).json({
-      success: false,
-      message: 'Resource not found — invalid ID format',
-    });
-  }
-
-  // JWT errors
-  if (err.name === 'JsonWebTokenError') {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid token',
-    });
-  }
-
-  if (err.name === 'TokenExpiredError') {
-    return res.status(401).json({
-      success: false,
-      message: 'Token expired',
-    });
-  }
-
-  // Default server error
-  res.status(err.statusCode || 500).json({
+  res.status(statusCode).json({
     success: false,
-    message: err.message || 'Internal Server Error',
+    message,
+    // Only include error code in development for faster debugging
+    ...(process.env.NODE_ENV !== 'production' && { debug: err.message }),
   });
 };
 

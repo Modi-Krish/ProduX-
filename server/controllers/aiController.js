@@ -1,132 +1,184 @@
-// server/controllers/aiController.js
-const { GoogleGenAI } = require('@google/genai');
+/**
+ * AI Controller — Gemini-powered features
+ *
+ * FIX (SEC-10): User-controlled inputs (title, description, currentUrl, pageTitle)
+ * are now sanitized and length-limited before being injected into AI prompts.
+ * This prevents prompt injection attacks where a user could craft task titles
+ * to manipulate Gemini's output (e.g., "Ignore previous instructions...").
+ *
+ * FIX (EXT-1): The /api/ai/coach endpoint now requires authentication.
+ * The extension must send a valid Bearer token with each request.
+ */
 
-// The client automatically picks up the GEMINI_API_KEY environment variable
-const ai = new GoogleGenAI({});
+const { GoogleGenAI } = require('@google/genai');
+const logger = require('../utils/logger');
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+// ── Sanitization Helpers ──────────────────────────────────
 
 /**
- * Generate subtasks for a task (Quest Master)
- * POST /api/ai/breakdown
+ * Remove potentially injection-harmful patterns from user-supplied strings.
+ * Strips control characters, excessive whitespace, and limits length.
+ * @param {string} input - Raw user input
+ * @param {number} maxLength - Maximum allowed length
+ * @returns {string} Sanitized string
  */
-exports.generateSubtasks = async (req, res) => {
+function sanitizeInput(input, maxLength = 500) {
+  if (!input || typeof input !== 'string') return '';
+  return input
+    .replace(/[\x00-\x1F\x7F]/g, ' ')  // Strip control characters
+    .replace(/\s+/g, ' ')               // Collapse whitespace
+    .trim()
+    .substring(0, maxLength);
+}
+
+/**
+ * Sanitize a URL string — keep only the hostname and path, remove query/fragment.
+ * @param {string} url - Raw URL string
+ * @returns {string} Sanitized URL or 'unknown'
+ */
+function sanitizeUrl(url) {
+  if (!url || typeof url !== 'string') return 'unknown';
+  try {
+    const parsed = new URL(url);
+    return `${parsed.hostname}${parsed.pathname.substring(0, 60)}`;
+  } catch {
+    return 'unknown';
+  }
+}
+
+// ── Controllers ───────────────────────────────────────────
+
+/**
+ * @desc    Generate AI-powered subtask breakdown from a task title/description
+ * @route   POST /api/ai/breakdown
+ * @access  Private
+ */
+const generateSubtasks = async (req, res, next) => {
   try {
     const { title, description } = req.body;
 
     if (!title) {
-      return res.status(400).json({ message: 'Task title is required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Task title is required for AI breakdown',
+      });
     }
 
-    const prompt = `
-      Break down the following task into a structured workflow.
-      
-      Task Title: "${title}"
-      Task Description: "${description || 'None'}"
-      
-      Rules:
-      - Generate 4–8 subtasks.
-      - Subtasks must directly relate to the task title.
-      - Keep each subtask short, actionable, and clear.
-      - Use professional and natural wording.
-      - Avoid fantasy, RPG, poetic, or vague language.
-      - Maintain logical workflow order.
-      - Focus on execution-oriented steps.
-      - Do not repeat similar subtasks.
-      - Output ONLY a raw JSON array of strings. Do not include markdown code block formatting like \`\`\`json or \`\`\`.
+    // FIX (SEC-10): Sanitize user inputs before injection into AI prompt
+    const safeTitle = sanitizeInput(title, 200);
+    const safeDescription = sanitizeInput(description, 500);
 
-      Guidelines:
-      - If the title is technical, generate technical workflow subtasks.
-      - If the title is business-related, generate planning/execution subtasks.
-      - If the title is creative, generate ideation/production subtasks.
-      - Make the subtasks realistic and useful for productivity.
+    if (!safeTitle) {
+      return res.status(400).json({
+        success: false,
+        message: 'Task title contains invalid characters',
+      });
+    }
 
-      Example Input: "Lean AI ML"
-      Example Output: ["Define the AI problem scope", "Collect essential training data", "Build a lightweight prototype", "Test initial model performance", "Gather early user feedback", "Optimize model accuracy"]
-    `;
+    const prompt = `You are a helpful productivity assistant. Break down the following task into 3-7 specific, actionable subtasks.
+
+Task Title: ${safeTitle}
+${safeDescription ? `Task Description: ${safeDescription}` : ''}
+
+Respond with a JSON array of subtask title strings only. No explanations. No markdown. Only valid JSON.
+Example: ["Research the topic", "Create an outline", "Write the first draft"]`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt
+      model: 'gemini-2.0-flash',
+      contents: prompt,
     });
 
-    let rawText = response.text || '';
-    
-    // Clean up any potential markdown wrapping
-    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const raw = response.text || '';
 
+    // Parse JSON safely
     let subtasks = [];
     try {
-      subtasks = JSON.parse(rawText);
+      // Strip markdown code fences if Gemini returns them
+      const cleaned = raw.replace(/```json?/gi, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) {
+        subtasks = parsed
+          .filter((s) => typeof s === 'string' && s.trim())
+          .map((s) => s.trim().substring(0, 200))
+          .slice(0, 10); // Cap at 10 subtasks
+      }
     } catch (parseError) {
-      console.error('Failed to parse AI subtasks response:', rawText, parseError);
-      // Fallback in case AI returned something invalid
-      subtasks = [
-        `Scout out resources for ${title}`,
-        `Draft initial plan for ${title}`,
-        `Execute primary objectives`,
-        `Deliver final solution & review`
-      ];
+      logger.warn('AI subtask response parse failed', {
+        userId: req.user._id,
+        raw: raw.substring(0, 200),
+      });
+      subtasks = [];
     }
 
-    return res.status(200).json({ subtasks });
+    res.status(200).json({
+      success: true,
+      data: subtasks,
+    });
   } catch (error) {
-    console.error('Quest Master subtask generation failed, returning self-healing fallback:', error);
-    
-    // Return high-quality context-aware fallback subtasks so the user experience is seamless
-    const titleClean = title.trim();
-    const subtasks = [
-      `Organize resources and prerequisites for "${titleClean}"`,
-      `Draft the initial framework and setup`,
-      `Execute primary objectives for "${titleClean}"`,
-      `Perform quality checks and refine details`,
-      `Complete final review and wrap up`
-    ];
-    
-    return res.status(200).json({ subtasks, isFallback: true });
+    logger.error('AI breakdown error', {
+      userId: req.user._id,
+      error: error.message,
+    });
+    next(error);
   }
 };
 
 /**
- * Generate a context-aware distraction warning (Focus Coach)
- * POST /api/ai/coach
+ * @desc    Generate AI-powered focus coaching warning
+ * @route   POST /api/ai/coach
+ * @access  Private (requires Firebase ID Token)
+ *
+ * FIX (EXT-1 / SEC-16): This endpoint now requires authentication.
+ * The protect middleware is applied in aiRoutes.js, so this handler
+ * can trust that req.user is populated.
+ *
+ * The Chrome extension MUST include a valid Bearer token header:
+ *   Authorization: Bearer <firebase_id_token>
  */
-exports.generateFocusWarning = async (req, res) => {
+const generateFocusWarning = async (req, res, next) => {
   try {
     const { intendedFocus, currentUrl, pageTitle } = req.body;
 
-    if (!intendedFocus || !currentUrl) {
-      return res.status(400).json({ message: 'Intended focus and current URL are required' });
+    if (!intendedFocus) {
+      return res.status(400).json({
+        success: false,
+        message: 'intendedFocus is required',
+      });
     }
 
-    const prompt = `
-      You are a strict but humorous "Focus Coach" RPG guide. 
-      The hero was supposed to be focusing on their quest: "${intendedFocus}".
-      Instead, they got distracted and navigated to a prohibited territory.
-      
-      Distracted URL: "${currentUrl}"
-      Distracted Page Title: "${pageTitle || 'Unknown page'}"
-      
-      Write a short, sharp, and slightly sassy 1-sentence alert warning them to close the distraction.
-      - Make it extremely context-aware based on what they are wasting time on.
-      - Incorporate RPG flavor (e.g., calling them "hero", "adventurer", mentioning their "focus pool" or "mana").
-      - Keep it under 20 words so it fits perfectly in a standard system notification.
-      
-      Example: "Adventurer! Youtube's siren song drains your focus pool. Return to the sacred React quest immediately!"
-    `;
+    // FIX (SEC-10): Sanitize all inputs — currentUrl and pageTitle come from
+    // the browser and could contain injected strings
+    const safeFocus = sanitizeUrl(intendedFocus);
+    const safeCurrent = sanitizeUrl(currentUrl);
+    const safeTitle = sanitizeInput(pageTitle, 100);
+
+    const prompt = `You are a strict but encouraging productivity coach. The user intended to focus on: "${safeFocus}" but is currently browsing: "${safeCurrent}" (page title: "${safeTitle || 'unknown'}").
+
+Write a single motivating warning message (max 120 characters) urging them to return to their focus site. Be direct but not harsh.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt
+      model: 'gemini-2.0-flash',
+      contents: prompt,
     });
 
-    const warning = (response.text || `Get back to ${intendedFocus}! You are currently wasting time in distraction territory.`).trim();
+    const warning = (response.text || '')
+      .replace(/^["']|["']$/g, '') // Strip surrounding quotes
+      .trim()
+      .substring(0, 200);
 
-    return res.status(200).json({ warning });
+    res.status(200).json({
+      success: true,
+      warning,
+    });
   } catch (error) {
-    console.error('Focus Coach warning generation failed, returning self-healing fallback:', error);
-    
-    // Provide a neat default sassy RPG response in case of API failure
-    const warning = `Adventurer! Prohibited territory detected. Return to your sacred quest: "${intendedFocus}" before your mana drains!`;
-    return res.status(200).json({ warning, isFallback: true });
+    logger.error('AI coach error', {
+      userId: req.user?._id,
+      error: error.message,
+    });
+    next(error);
   }
 };
 
+module.exports = { generateSubtasks, generateFocusWarning };

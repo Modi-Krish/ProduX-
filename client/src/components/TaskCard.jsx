@@ -125,6 +125,34 @@ const TaskCard = ({ task, onEdit }) => {
 
       <p className="task-desc">{task.description}</p>
 
+      {task.attachments && task.attachments.length > 0 && (
+        <div className="task-attachments" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+          {task.attachments.map((file, idx) => (
+            <a 
+              key={idx} 
+              href={file.fileUrl || file.publicUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="task-attachment-chip"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 10px',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-primary)',
+                borderRadius: 'var(--radius-pill)',
+                fontSize: '0.8rem',
+                textDecoration: 'none',
+                border: '1px solid var(--border)'
+              }}
+            >
+              📎 {file.fileName}
+            </a>
+          ))}
+        </div>
+      )}
+
       {/* 21-Day Board */}
       {is21Day && (
         <div className="challenge-inline">

@@ -39,8 +39,16 @@ const allowedOrigins = [
 
 // Add production client URL from env
 if (process.env.CLIENT_URL) {
-  allowedOrigins.push(process.env.CLIENT_URL);
+  // Trim trailing slash if present
+  allowedOrigins.push(process.env.CLIENT_URL.replace(/\/$/, ''));
 }
+
+// Automatically trust Vercel deployments if VERCEL_URL is present
+if (process.env.VERCEL_URL) {
+  allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
+}
+// Also allow the main production Vercel domain if known
+allowedOrigins.push('https://produx-orcin.vercel.app');
 
 // Add any additional comma-separated CORS origins from env
 if (process.env.ADDITIONAL_ALLOWED_ORIGINS) {

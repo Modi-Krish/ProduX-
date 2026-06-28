@@ -101,8 +101,41 @@ const Social = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, groupMessages]);
 
-  // Real-time messages are handled via Socket.io (configured in useSocket.js).
-  // Direct Firestore onSnapshot listeners on legacy collections are removed to prevent state overrides.
+  // ── REAL-TIME POLLING ─────────────────────────────────────
+  // Vercel serverless does not support persistent WebSocket connections,
+  // so Socket.io returns 404 in production. We use short polling to deliver
+  // messages in near-real-time while a chat window is open.
+  // This works identically on web browsers and Capacitor mobile apps.
+  useEffect(() => {
+    if (!activeChatUser?._id) return;
+
+    const interval = setInterval(() => {
+      dispatch(fetchChatMessages(activeChatUser._id));
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [activeChatUser?._id, dispatch]);
+
+  useEffect(() => {
+    if (!activeGroup?._id) return;
+
+    const interval = setInterval(() => {
+      dispatch(fetchGroupChatMessages(activeGroup._id));
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [activeGroup?._id, dispatch]);
+
+  // Also poll conversations list when on the friends tab (for unread badges)
+  useEffect(() => {
+    if (activeTab !== 'friends' || activeChatUser) return;
+
+    const interval = setInterval(() => {
+      dispatch(fetchConversations());
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [activeTab, activeChatUser, dispatch]);
 
   const handleAddFriend = async (recipientId) => {
     try {

@@ -16,7 +16,7 @@
  * group CREATOR (not just any member) before adding new members.
  */
 
-const { db, formatDocs, admin } = require('../config/firebase');
+const { db, formatDocs, admin, isFCMEnabled } = require('../config/firebase');
 const webpush = require('web-push');
 const logger = require('../utils/logger');
 
@@ -33,7 +33,7 @@ const MAX_DM_TEXT_LENGTH = 4000;
 const MAX_DM_HISTORY = 100;
 const MAX_GROUP_HISTORY = 200;
 
-// ── Helper ─────────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────
 
 async function sendWebPush(pushSubscriptions, payload) {
   if (!pushSubscriptions || pushSubscriptions.length === 0) return;
@@ -47,6 +47,47 @@ async function sendWebPush(pushSubscriptions, payload) {
     })
   );
   await Promise.all(promises);
+}
+
+async function sendFCMPush(tokens, payload) {
+  if (!isFCMEnabled || !tokens || tokens.length === 0) return;
+  
+  // Deduplicate and filter tokens
+  const cleanTokens = [...new Set(tokens.filter((t) => typeof t === 'string' && t.trim()))];
+  if (cleanTokens.length === 0) return;
+
+  const message = {
+    tokens: cleanTokens,
+    notification: {
+      title: payload.title,
+      body: payload.body,
+    },
+    data: payload.data || {},
+    android: {
+      priority: 'high',
+      notification: {
+        sound: 'default',
+        clickAction: 'FCM_PLUGIN_ACTIVITY',
+      },
+    },
+    apns: {
+      payload: {
+        aps: {
+          sound: 'default',
+        },
+      },
+    },
+  };
+
+  try {
+    const response = await admin.messaging().sendEachForMulticast(message);
+    logger.info('FCM multicast notification sent from chat', {
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+    });
+  } catch (err) {
+    logger.error('Failed to send FCM multicast from chat', { error: err.message });
+  }
 }
 
 // ── Direct Messages ────────────────────────────────────────
@@ -113,15 +154,26 @@ const sendMessage = async (req, res, next) => {
       io.to(senderId).emit('new_message', populated);
     }
 
-    // Web Push notification to receiver (fire-and-forget)
+    // Push notifications (Web Push + Native FCM)
     if (receiverSnap.exists) {
       const receiver = receiverSnap.data();
+      
+      // 1. Web Push
       if (receiver.pushSubscriptions?.length > 0) {
         sendWebPush(receiver.pushSubscriptions, {
           title: `New message from ${senderName}`,
           body: fileUrl ? (fileName || 'Sent a file') : (text || '').substring(0, 80),
           icon: '/favicon.ico',
           url: '/social',
+        }).catch(() => {});
+      }
+
+      // 2. Native FCM Push
+      if (receiver.fcmTokens?.length > 0) {
+        sendFCMPush(receiver.fcmTokens, {
+          title: `New message from ${senderName}`,
+          body: fileUrl ? (fileName || 'Sent a file') : (text || '').substring(0, 80),
+          data: { type: 'dm', id: senderId },
         }).catch(() => {});
       }
     }
@@ -404,10 +456,12 @@ const sendGroupMessage = async (req, res, next) => {
       io.to(`group:${groupId}`).emit('group_message', populated);
     }
 
-    // Web Push to other group members (fire-and-forget)
+    // Push notifications (Web Push + Native FCM)
     const membersToNotify = group.members.filter((m) => m !== senderId);
     if (membersToNotify.length > 0) {
       const userSnaps = await Promise.all(membersToNotify.map((uid) => db.collection('users').doc(uid).get()));
+      
+      // 1. Web Push
       const pushPayload = {
         title: `New message in ${group.name}`,
         body: `${senderName}: ${(text || '').substring(0, 80)}`,
@@ -419,6 +473,21 @@ const sendGroupMessage = async (req, res, next) => {
           sendWebPush(snap.data().pushSubscriptions, pushPayload).catch(() => {});
         }
       });
+
+      // 2. Native FCM Push
+      const fcmTokens = [];
+      userSnaps.forEach((snap) => {
+        if (snap.exists && snap.data().fcmTokens) {
+          fcmTokens.push(...snap.data().fcmTokens);
+        }
+      });
+      if (fcmTokens.length > 0) {
+        sendFCMPush(fcmTokens, {
+          title: `Group: ${group.name}`,
+          body: `${senderName}: ${fileUrl ? (fileName || 'Sent a file') : (text || '').substring(0, 80)}`,
+          data: { type: 'group', id: groupId },
+        }).catch(() => {});
+      }
     }
 
     res.status(201).json({ success: true, data: populated });

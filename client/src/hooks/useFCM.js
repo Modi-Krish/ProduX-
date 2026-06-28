@@ -2,9 +2,7 @@ import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import API from '../api/axios';
 
 /**
  * Custom hook to register, sync, and listen to native Android FCM push notifications
@@ -42,15 +40,7 @@ const useFCM = () => {
           console.log('📡 Mobile FCM Push Token Generated: ', registeredToken);
           
           try {
-            await axios.post(
-              `${API_URL}/api/social/fcm/token`,
-              { fcmToken: registeredToken },
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
+            await API.post('/social/fcm/token', { fcmToken: registeredToken });
             console.log('✅ FCM Push Token synced successfully with the database.');
           } catch (err) {
             console.error('❌ Failed to sync FCM push token with backend:', err.message);

@@ -1,8 +1,22 @@
 import axios from 'axios';
 import { auth } from './firebase';
 
+let apiBaseUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+
+// Detect if running on a native mobile device (Capacitor webview)
+const isCapacitor = 
+  window.location.origin.startsWith('capacitor://') || 
+  (window.location.origin === 'http://localhost' && !window.location.port) || 
+  (window.location.origin === 'https://localhost' && !window.location.port);
+
+// If on a native device and the configuration points to local machine localhost,
+// redirect to the production backend so it doesn't crash on device.
+if (isCapacitor && apiBaseUrl.includes('localhost')) {
+  apiBaseUrl = 'https://produx-orcin.vercel.app/api';
+}
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
+  baseURL: apiBaseUrl,
 });
 
 // Attach Firebase Auth ID token to every request asynchronously

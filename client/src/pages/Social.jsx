@@ -101,59 +101,8 @@ const Social = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, groupMessages]);
 
-  // Firestore Direct Messages real-time listener
-  useEffect(() => {
-    if (!isConfigured || !activeChatUser || !user?._id) return;
-
-    const q = query(
-      collection(db, 'dms'),
-      where('participants', 'array-contains', user._id)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        if (
-          (data.senderId?._id === user._id && data.receiverId?._id === activeChatUser._id) ||
-          (data.senderId?._id === activeChatUser._id && data.receiverId?._id === user._id)
-        ) {
-          msgs.push({ ...data, _id: doc.id });
-        }
-      });
-      // Sort client-side by createdAt asc
-      msgs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      dispatch(setMessages(msgs));
-    }, (err) => {
-      console.error('Error fetching Firestore DMs:', err);
-    });
-
-    return () => unsubscribe();
-  }, [activeChatUser, user?._id, dispatch]);
-
-  // Firestore Group Messages real-time listener
-  useEffect(() => {
-    if (!isConfigured || !activeGroup?._id) return;
-
-    const q = query(
-      collection(db, 'groupMessages'),
-      where('groupId', '==', activeGroup._id)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = [];
-      snapshot.forEach((doc) => {
-        msgs.push({ ...doc.data(), _id: doc.id });
-      });
-      // Sort client-side by createdAt asc
-      msgs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      dispatch(setGroupMessages(msgs));
-    }, (err) => {
-      console.error('Error fetching Firestore Group Messages:', err);
-    });
-
-    return () => unsubscribe();
-  }, [activeGroup?._id, dispatch]);
+  // Real-time messages are handled via Socket.io (configured in useSocket.js).
+  // Direct Firestore onSnapshot listeners on legacy collections are removed to prevent state overrides.
 
   const handleAddFriend = async (recipientId) => {
     try {

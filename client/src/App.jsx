@@ -13,6 +13,7 @@ import Social from './pages/Social';
 import ProtectedRoute from './components/ProtectedRoute';
 import { auth } from './api/firebase';
 import { onIdTokenChanged } from 'firebase/auth';
+import useFCM from './hooks/useFCM';
 
 function App() {
   const dispatch = useDispatch();
@@ -111,6 +112,10 @@ function App() {
     };
     requestPermissionOnStartup();
   }, []);
+
+  // Register FCM push notification token at the App level
+  // so it happens immediately on login, not only when visiting Community.
+  useFCM();
 
   return (
     <Router>

@@ -50,7 +50,11 @@ async function sendWebPush(pushSubscriptions, payload) {
 }
 
 async function sendFCMPush(tokens, payload) {
-  if (!isFCMEnabled || !tokens || tokens.length === 0) return;
+  if (!isFCMEnabled) {
+    logger.warn('FCM push notification skipped: Firebase Admin SDK is not initialized or FCM is disabled on this server.');
+    return;
+  }
+  if (!tokens || tokens.length === 0) return;
   
   // Deduplicate and filter tokens
   const cleanTokens = [...new Set(tokens.filter((t) => typeof t === 'string' && t.trim()))];

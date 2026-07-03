@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const walkieController = require('../controllers/walkieController');
-const { protect } = require('../middlewares/authMiddleware');
+const { protect } = require('../middlewares/auth');
 
 // All walkie-talkie routes require authentication
 router.use(protect);

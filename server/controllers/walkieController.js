@@ -122,7 +122,6 @@ exports.getMyRooms = async (req, res, next) => {
 
     const snapshot = await db.collection('walkie_rooms')
       .where('memberIds', 'array-contains', userId)
-      .orderBy('updatedAt', 'desc')
       .get();
 
     const rooms = snapshot.docs.map(doc => {
@@ -136,6 +135,13 @@ exports.getMyRooms = async (req, res, next) => {
       };
     });
 
+    // Sort in memory to avoid Firestore composite index requirement
+    rooms.sort((a, b) => {
+      const dateA = a.updatedAt || a.createdAt || new Date(0);
+      const dateB = b.updatedAt || b.createdAt || new Date(0);
+      return dateB - dateA;
+    });
+
     res.status(200).json({ success: true, data: rooms });
   } catch (err) {
     next(err);
@@ -147,8 +153,7 @@ exports.getPublicRooms = async (req, res, next) => {
   try {
     const snapshot = await db.collection('walkie_rooms')
       .where('isPublic', '==', true)
-      .orderBy('createdAt', 'desc')
-      .limit(20)
+      .limit(50) // Increased limit to grab more before sorting
       .get();
 
     const rooms = snapshot.docs.map(doc => {
@@ -160,6 +165,13 @@ exports.getPublicRooms = async (req, res, next) => {
         createdAt: data.createdAt?.toDate(),
         updatedAt: data.updatedAt?.toDate()
       };
+    });
+
+    // Sort in memory to avoid Firestore composite index requirement
+    rooms.sort((a, b) => {
+      const dateA = a.createdAt || new Date(0);
+      const dateB = b.createdAt || new Date(0);
+      return dateB - dateA;
     });
 
     res.status(200).json({ success: true, data: rooms });

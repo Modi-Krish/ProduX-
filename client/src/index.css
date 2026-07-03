@@ -3329,6 +3329,15 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   margin-top: 2rem;
 }
 
+.walkie-card {
+  background: var(--card); border: 2px solid var(--fg);
+  border-radius: var(--radius-leaf); padding: 1.5rem;
+  box-shadow: 6px 6px 0px 0px var(--fg);
+  transition: all var(--transition); position: relative;
+  overflow: hidden;
+}
+.walkie-card:hover { transform: translate(-4px, -4px); box-shadow: 10px 10px 0px 0px var(--fg); }
+
 @media (max-width: 768px) {
   .walkie-grid {
     grid-template-columns: 1fr;

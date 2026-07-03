@@ -74,7 +74,7 @@ const WalkieDashboard = () => {
         <div className="bg-decor square-1" />
         <div className="bg-decor dots-1" />
 
-        <div className="dashboard-header">
+        <div className="dashboard-header walkie-header">
           <div>
             <h1><span className="highlight">Walkie-Talkie</span> Rooms</h1>
             <p className="dashboard-greeting">
@@ -88,7 +88,7 @@ const WalkieDashboard = () => {
 
         <div className="walkie-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', marginTop: '2rem' }}>
           {/* Join Sidebar */}
-          <div className="card glass-card" style={{ padding: '1.5rem', height: 'fit-content' }}>
+          <div className="walkie-card" style={{ padding: '1.5rem', height: 'fit-content' }}>
             <h3>Join a Room</h3>
             <form onSubmit={handleJoinRoom} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
               <input
@@ -114,7 +114,7 @@ const WalkieDashboard = () => {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
                   {myRooms.map(room => (
-                    <div key={room._id} className="card glass-card" style={{ padding: '1.25rem', cursor: 'pointer' }} onClick={() => navigate(`/walkie/${room._id}`)}>
+                    <div key={room._id} className="walkie-card" style={{ padding: '1.25rem', cursor: 'pointer' }} onClick={() => navigate(`/walkie/${room._id}`)}>
                       <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent)' }}>{room.name}</h4>
                       <p className="text-secondary" style={{ fontSize: '0.85rem', margin: '0 0 1rem 0' }}>{room.description || 'No description'}</p>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
@@ -134,7 +134,7 @@ const WalkieDashboard = () => {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
                   {publicRooms.map(room => (
-                    <div key={room._id} className="card glass-card" style={{ padding: '1.25rem', cursor: 'pointer' }} onClick={() => navigate(`/walkie/${room._id}`)}>
+                    <div key={room._id} className="walkie-card" style={{ padding: '1.25rem', cursor: 'pointer' }} onClick={() => navigate(`/walkie/${room._id}`)}>
                       <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent)' }}>{room.name}</h4>
                       <p className="text-secondary" style={{ fontSize: '0.85rem', margin: '0 0 1rem 0' }}>{room.description || 'No description'}</p>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>

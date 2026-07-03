@@ -121,7 +121,7 @@ const WalkieRoom = ({ roomId }) => {
         <div className="container walkie-container" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 70px)' }}>
         
         {/* Header */}
-        <div className="card glass-card walkie-header" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div className="walkie-card walkie-header" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <div>
             <h2 style={{ margin: '0 0 0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span className="live-indicator"></span>
@@ -143,7 +143,7 @@ const WalkieRoom = ({ roomId }) => {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
           
           {/* Active Speaker Area */}
-          <div className="card glass-card" style={{ flex: '0 0 auto', padding: '2rem', textAlign: 'center', background: isTalking ? 'rgba(76, 175, 80, 0.1)' : 'var(--card)' }}>
+          <div className="walkie-card" style={{ flex: '0 0 auto', padding: '2rem', textAlign: 'center', background: isTalking ? 'rgba(76, 175, 80, 0.1)' : 'var(--card)' }}>
             <h3 style={{ margin: '0 0 1rem 0' }}>Current Speaker</h3>
             {activeSpeakers.length > 0 ? (
               <div className="speaker-pulse active">
@@ -159,7 +159,7 @@ const WalkieRoom = ({ roomId }) => {
 
           {/* Queue Area */}
           {queue.length > 0 && (
-            <div className="card glass-card" style={{ padding: '1rem' }}>
+            <div className="walkie-card" style={{ padding: '1rem' }}>
               <h4 style={{ margin: '0 0 0.5rem 0' }}>Up Next ({queue.length})</h4>
               <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
                 {queue.map((qId, idx) => (
@@ -172,7 +172,7 @@ const WalkieRoom = ({ roomId }) => {
           )}
 
           {/* Members Grid (Simplified for now) */}
-          <div className="card glass-card" style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+          <div className="walkie-card" style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
             <h4 style={{ margin: '0 0 1rem 0' }}>Members in Room</h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '1rem' }}>
               {/* This would ideally list all online members. We currently just map memberIds. */}

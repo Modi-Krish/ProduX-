@@ -15,7 +15,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { auth } from './api/firebase';
 import { onIdTokenChanged } from 'firebase/auth';
 import useFCM from './hooks/useFCM';
-import WalkieTalkieWidget from './components/voice/WalkieTalkieWidget';
 
 function App() {
   const dispatch = useDispatch();
@@ -165,7 +164,6 @@ function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      {user && <WalkieTalkieWidget />}
     </Router>
   );
 }

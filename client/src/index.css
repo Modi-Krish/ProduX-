@@ -3338,6 +3338,29 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
 }
 .walkie-card:hover { transform: translate(-4px, -4px); box-shadow: 10px 10px 0px 0px var(--fg); }
 
+.walkie-room-layout {
+  flex: 1;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: calc(100vh - 80px);
+  padding: 1rem;
+}
+
+.walkie-ptt-container {
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--card);
+  margin: 0 -1rem -1rem -1rem;
+  border-top: 2px solid var(--fg);
+  border-radius: 0 0 24px 24px;
+}
+
 @media (max-width: 768px) {
   .walkie-grid {
     grid-template-columns: 1fr;
@@ -3352,6 +3375,13 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   }
   .walkie-header button {
     width: 100%;
+  }
+  .walkie-room-layout {
+    padding: 0.5rem;
+    height: calc(100vh - 65px);
+  }
+  .walkie-ptt-container {
+    margin: 0 -0.5rem -0.5rem -0.5rem;
   }
 }
 

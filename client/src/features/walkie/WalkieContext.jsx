@@ -11,9 +11,10 @@ const ICE_SERVERS = {
   ]
 };
 
+import { getSocket } from '../../api/socket';
+
 export const WalkieProvider = ({ children }) => {
   const { user } = useSelector((state) => state.auth);
-  const getSocket = () => window.socket;
 
   const [isInRoom, setIsInRoom] = useState(false);
   const [currentRoomId, setCurrentRoomId] = useState(null);

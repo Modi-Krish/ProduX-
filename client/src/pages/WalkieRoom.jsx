@@ -112,13 +112,13 @@ const WalkieRoom = ({ roomId }) => {
   return (
     <>
       <Navbar />
-      <main className="dashboard walkie-room-layout">
+      <main className="walkie-room-layout">
         {/* Background Decorations */}
         <div className="bg-decor circle-1" />
         <div className="bg-decor square-1" />
         <div className="bg-decor dots-1" />
 
-        <div className="container walkie-container" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 70px)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}>
         
         {/* Header */}
         <div className="walkie-card walkie-header" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -189,7 +189,7 @@ const WalkieRoom = ({ roomId }) => {
         </div>
 
         {/* PTT Button */}
-        <div style={{ padding: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--bg)', margin: '0 -1rem -1rem -1rem', borderTop: '1px solid var(--border)' }}>
+        <div className="walkie-ptt-container">
           <button
             className={`walkie-ptt-btn ${isQueued || isTalking ? 'active' : ''}`}
             onMouseDown={handleMicTouchStart}

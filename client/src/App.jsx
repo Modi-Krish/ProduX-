@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Social from './pages/Social';
+import WalkieDashboard from './pages/WalkieDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import { auth } from './api/firebase';
 import { onIdTokenChanged } from 'firebase/auth';
@@ -143,6 +144,22 @@ function App() {
           element={
             <ProtectedRoute>
               <Social />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/walkie"
+          element={
+            <ProtectedRoute>
+              <WalkieDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/walkie/:roomId"
+          element={
+            <ProtectedRoute>
+              <WalkieDashboard />
             </ProtectedRoute>
           }
         />

@@ -3083,8 +3083,87 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
 }
 
 .chat-bubble.sent .chat-sticker-bubble ~ p,
-.chat-bubble.sent .chat-sticker-bubble ~ .chat-bubble-meta {
+.chat-bubble.sent .chat-bubble.sent .chat-bubble-meta {
+  justify-content: flex-end;
+}
+
+/* ────────────────────────────────────────────────────────── */
+/* WALKIE-TALKIE ROOMS CSS                                    */
+/* ────────────────────────────────────────────────────────── */
+
+.walkie-container {
+  overflow: hidden;
+}
+
+.walkie-header {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.live-indicator {
+  width: 12px;
+  height: 12px;
+  background-color: var(--danger);
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.avatar-ring.speaking {
+  box-shadow: 0 0 0 4px var(--success);
+  animation: pulse-green 1.5s infinite;
+}
+
+@keyframes pulse-green {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.walkie-ptt-btn {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light, #60a5fa));
   color: white;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.5);
+  transition: all 0.2s ease-in-out;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.walkie-ptt-btn:active, .walkie-ptt-btn.active {
+  transform: scale(0.95);
+  background: linear-gradient(135deg, var(--success), #34d399);
+  box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+}
+
+.walkie-ptt-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(59, 130, 246, 0.6);
+}
+
+.walkie-ptt-btn:active:hover, .walkie-ptt-btn.active:hover {
+  transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .walkie-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .chat-file-video {

@@ -25,6 +25,7 @@ const socialRoutes = require('./routes/socialRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const storageRoutes = require('./routes/storageRoutes');
 const voiceRoutes = require('./routes/voiceRoutes');
+const walkieRoutes = require('./routes/walkieRoutes');
 
 // ── Initialize Express ────────────────────────────────────
 const app = express();
@@ -135,6 +136,7 @@ app.use('/api/social', socialRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/storage', storageRoutes);
 app.use('/api/voice', voiceRoutes);
+app.use('/api/walkie', walkieRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────
 app.use((req, res) => {

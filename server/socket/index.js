@@ -24,6 +24,9 @@ const initializeSocket = (io) => {
     }
   });
 
+  // In-memory queue for walkie-talkie rooms
+  const roomQueues = {};
+
   io.on('connection', async (socket) => {
     const userId = socket.userId;
     console.log(`🔌 Socket connected: ${socket.id} (User: ${userId})`);
@@ -93,13 +96,38 @@ const initializeSocket = (io) => {
       io.to(target).emit('voice-ice-candidate', { sender, candidate, roomId, socketId: socket.id });
     });
 
-    // Push-to-Talk Status
+    // Push-to-Talk Status & Queue Management
     socket.on('voice-speaking-start', ({ roomId }) => {
       socket.to(`voice:${roomId}`).emit('voice-speaking-start', { userId, socketId: socket.id });
     });
 
     socket.on('voice-speaking-stop', ({ roomId }) => {
       socket.to(`voice:${roomId}`).emit('voice-speaking-stop', { userId, socketId: socket.id });
+    });
+
+    socket.on('walkie-request-speak', ({ roomId }) => {
+      if (!roomQueues[roomId]) {
+        roomQueues[roomId] = [];
+      }
+      if (!roomQueues[roomId].includes(userId)) {
+        roomQueues[roomId].push(userId);
+        io.to(`voice:${roomId}`).emit('walkie-queue-update', { roomId, queue: roomQueues[roomId] });
+      }
+    });
+
+    socket.on('walkie-release-speak', ({ roomId }) => {
+      if (roomQueues[roomId]) {
+        roomQueues[roomId] = roomQueues[roomId].filter(id => id !== userId);
+        io.to(`voice:${roomId}`).emit('walkie-queue-update', { roomId, queue: roomQueues[roomId] });
+      }
+    });
+
+    socket.on('walkie-skip-queue', ({ roomId, targetUserId }) => {
+      // Logic for creator to remove someone from queue
+      if (roomQueues[roomId]) {
+        roomQueues[roomId] = roomQueues[roomId].filter(id => id !== targetUserId);
+        io.to(`voice:${roomId}`).emit('walkie-queue-update', { roomId, queue: roomQueues[roomId] });
+      }
     });
   });
 };

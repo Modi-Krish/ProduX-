@@ -30,6 +30,7 @@ const Navbar = () => {
   };
 
   const isOnSocial = location.pathname === '/social';
+  const isOnWalkie = location.pathname === '/walkie';
 
   return (
     <>
@@ -53,6 +54,13 @@ const Navbar = () => {
             title="Community"
           >
             <HiTrendingUp /> <span className="nav-label">Community</span>
+          </button>
+          <button
+            className={`btn-nav ${isOnWalkie ? 'active' : ''}`}
+            onClick={() => navigate('/walkie')}
+            title="Walkie-Talkie"
+          >
+            <span style={{ fontSize: '1.2rem' }}>🎤</span> <span className="nav-label">Walkie-Talkie</span>
           </button>
 
           <div className="nav-divider" />

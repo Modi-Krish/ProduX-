@@ -6,6 +6,7 @@ import gamificationReducer from '../features/gamification/gamificationSlice';
 import habitReducer from '../features/habits/habitSlice';
 import hobbyReducer from '../features/hobbies/hobbySlice';
 import socialReducer from '../features/social/socialSlice';
+import walkieReducer from '../features/walkie/walkieSlice';
 
 const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ const store = configureStore({
     habits: habitReducer,
     hobbies: hobbyReducer,
     social: socialReducer,
+    walkie: walkieReducer,
   },
 });
 

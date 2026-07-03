@@ -98,19 +98,27 @@ const WalkieRoom = ({ roomId }) => {
 
   if (loading || !roomData) {
     return (
-      <div className="dashboard-layout">
+      <>
         <Navbar />
-        <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-          <h2>Loading Room...</h2>
-        </div>
-      </div>
+        <main className="dashboard">
+          <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+            <h2>Loading Room...</h2>
+          </div>
+        </main>
+      </>
     );
   }
 
   return (
-    <div className="dashboard-layout walkie-room-layout">
+    <>
       <Navbar />
-      <div className="container walkie-container" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 70px)' }}>
+      <main className="dashboard walkie-room-layout">
+        {/* Background Decorations */}
+        <div className="bg-decor circle-1" />
+        <div className="bg-decor square-1" />
+        <div className="bg-decor dots-1" />
+
+        <div className="container walkie-container" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 70px)' }}>
         
         {/* Header */}
         <div className="card glass-card walkie-header" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -197,9 +205,9 @@ const WalkieRoom = ({ roomId }) => {
              {isTalking && <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>Transmitting</span>}
           </div>
         </div>
-
-      </div>
-    </div>
+        </div>
+      </main>
+    </>
   );
 };
 

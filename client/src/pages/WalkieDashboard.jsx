@@ -66,17 +66,27 @@ const WalkieDashboard = () => {
   }
 
   return (
-    <div className="dashboard-layout">
+    <>
       <Navbar />
-      <div className="container" style={{ paddingTop: '2rem', paddingBottom: '2rem' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-          <h2 style={{ margin: 0 }}>🎤 Walkie-Talkie Rooms</h2>
+      <main className="dashboard">
+        {/* Background Decorations */}
+        <div className="bg-decor circle-1" />
+        <div className="bg-decor square-1" />
+        <div className="bg-decor dots-1" />
+
+        <div className="dashboard-header">
+          <div>
+            <h1><span className="highlight">Walkie-Talkie</span> Rooms</h1>
+            <p className="dashboard-greeting">
+              Drop in, listen, or request to speak.
+            </p>
+          </div>
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
             + Create Walkie Room
           </button>
         </div>
 
-        <div className="walkie-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
+        <div className="walkie-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', marginTop: '2rem' }}>
           {/* Join Sidebar */}
           <div className="card glass-card" style={{ padding: '1.5rem', height: 'fit-content' }}>
             <h3>Join a Room</h3>
@@ -138,7 +148,6 @@ const WalkieDashboard = () => {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Create Modal */}
       {showCreate && (
@@ -168,7 +177,8 @@ const WalkieDashboard = () => {
           </div>
         </div>
       )}
-    </div>
+      </main>
+    </>
   );
 };
 

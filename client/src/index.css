@@ -3318,3 +3318,105 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
     max-height: 80vh;
   }
 }
+
+/* ═══════════════════════════════════════════════════ */
+/*  WALKIE TALKIE STYLES                              */
+/* ═══════════════════════════════════════════════════ */
+.walkie-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+  .walkie-grid {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 1.5rem;
+  }
+  .walkie-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+  .walkie-header button {
+    width: 100%;
+  }
+}
+
+.walkie-ptt-btn {
+  border: 4px solid var(--fg);
+  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: white;
+  color: var(--fg);
+  box-shadow: var(--shadow-pop);
+  transition: all var(--transition);
+  cursor: pointer;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.walkie-ptt-btn:active, .walkie-ptt-btn.active {
+  background: var(--accent);
+  color: white;
+  transform: translate(4px, 4px) scale(0.95);
+  box-shadow: 0px 0px 0px 0px var(--fg);
+}
+
+.walkie-header {
+  border: 2px solid var(--fg);
+  box-shadow: var(--shadow-soft);
+}
+
+.live-indicator {
+  width: 12px;
+  height: 12px;
+  background-color: var(--danger);
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.speaker-pulse {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.speaker-pulse.active .avatar-large {
+  animation: bounce 1s infinite alternate;
+  border-color: var(--success);
+  box-shadow: 0 0 20px var(--success);
+}
+
+.avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--tertiary);
+  border: 3px solid var(--fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  box-shadow: var(--shadow-pop);
+}
+
+.walkie-container {
+  max-width: 800px;
+  margin: 0 auto;
+}

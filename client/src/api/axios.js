@@ -39,16 +39,40 @@ API.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Handle 401 responses (expired/invalid token)
 API.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const isAuthRoute = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/register');
-    if (error.response?.status === 401 && !isAuthRoute) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !isAuthRoute && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        if (auth && auth.currentUser) {
+          // Force refresh the token
+          const newToken = await auth.currentUser.getIdToken(true);
+          
+          // Update Redux/LocalStorage manually if needed (Redux usually handles this via onIdTokenChanged, 
+          // but we update localStorage here just in case)
+          localStorage.setItem('token', newToken);
+          
+          // Retry the original request with the new token
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return API(originalRequest);
+        } else {
+          throw new Error("No current user");
+        }
+      } catch (refreshError) {
+        console.error('Failed to refresh token after 401:', refreshError);
+        // If refresh fails, log out
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
     }
+    
     return Promise.reject(error);
   }
 );

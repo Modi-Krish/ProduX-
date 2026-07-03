@@ -58,6 +58,49 @@ const initializeSocket = (io) => {
       socket.join(userId);
       console.log(`🔌 Socket reconnected: ${socket.id} (User: ${userId})`);
     });
+
+    // ── Voice / Walkie-Talkie Signaling ──
+
+    // Join a specific voice session (1-to-1 or group)
+    socket.on('join-voice', ({ roomId }) => {
+      socket.join(`voice:${roomId}`);
+      console.log(`🎤 User ${userId} joined voice room: voice:${roomId}`);
+      // Notify others in the room that a user joined
+      socket.to(`voice:${roomId}`).emit('voice-user-joined', { userId, socketId: socket.id });
+    });
+
+    // Leave a specific voice session
+    socket.on('leave-voice', ({ roomId }) => {
+      socket.leave(`voice:${roomId}`);
+      console.log(`🎤 User ${userId} left voice room: voice:${roomId}`);
+      socket.to(`voice:${roomId}`).emit('voice-user-left', { userId, socketId: socket.id });
+    });
+
+    // WebRTC Offer
+    socket.on('voice-offer', ({ target, caller, sdp, roomId }) => {
+      // Send offer only to the target user (could be their personal room or specific socket)
+      // If target is a user ID, we emit to their personal room
+      io.to(target).emit('voice-offer', { caller, sdp, roomId, socketId: socket.id });
+    });
+
+    // WebRTC Answer
+    socket.on('voice-answer', ({ target, responder, sdp, roomId }) => {
+      io.to(target).emit('voice-answer', { responder, sdp, roomId, socketId: socket.id });
+    });
+
+    // WebRTC ICE Candidate
+    socket.on('voice-ice-candidate', ({ target, sender, candidate, roomId }) => {
+      io.to(target).emit('voice-ice-candidate', { sender, candidate, roomId, socketId: socket.id });
+    });
+
+    // Push-to-Talk Status
+    socket.on('voice-speaking-start', ({ roomId }) => {
+      socket.to(`voice:${roomId}`).emit('voice-speaking-start', { userId, socketId: socket.id });
+    });
+
+    socket.on('voice-speaking-stop', ({ roomId }) => {
+      socket.to(`voice:${roomId}`).emit('voice-speaking-stop', { userId, socketId: socket.id });
+    });
   });
 };
 

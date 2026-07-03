@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Worker;
@@ -18,6 +19,7 @@ import java.net.URL;
 import org.json.JSONObject;
 
 public class NotificationWorker extends Worker {
+    private static final String TAG = "ProduX_Worker";
     private static final String CHANNEL_ID = "produx_background_alerts";
     private static final String CHANNEL_NAME = "ProduX Background Activity";
 
@@ -28,29 +30,28 @@ public class NotificationWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        Log.d(TAG, "Worker started - Checking for notifications...");
         try {
             Context context = getApplicationContext();
             SharedPreferences capStorage = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
             String token = capStorage.getString("token", null);
 
-            // If not logged in, skip background polling
             if (token == null || token.trim().isEmpty()) {
+                Log.w(TAG, "Aborting: No auth token found.");
                 return Result.success();
             }
 
-            // Clean the token (Capacitor wraps values in quotes in SharedPreferences)
             if (token.startsWith("\"") && token.endsWith("\"")) {
                 token = token.substring(1, token.length() - 1);
             }
 
-            // Poll our new unread summaries endpoint
             URL url = new URL("https://produx-orcin.vercel.app/api/social/unread");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Authorization", "Bearer " + token);
             conn.setRequestProperty("Accept", "application/json");
-            conn.setConnectTimeout(5000);
-            conn.setReadTimeout(5000);
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
 
             int responseCode = conn.getResponseCode();
             if (responseCode == 200) {
@@ -68,42 +69,36 @@ public class NotificationWorker extends Worker {
                     int pendingFriendsCount = data.optInt("pendingFriendsCount", 0);
                     int unreadMessagesCount = data.optInt("unreadMessagesCount", 0);
 
-                    // 1. If there are new direct messages, trigger a native system notification!
                     if (unreadMessagesCount > 0) {
-                        String bodyText = "You have " + unreadMessagesCount + " unread message(s) waiting in your private chats!";
-                        triggerSystemNotification("New Messages!", bodyText, 1002);
+                        triggerSystemNotification("New Messages!", "You have " + unreadMessagesCount + " unread message(s)!", 1002);
                     }
 
-                    // 2. If there are pending requests, trigger a native system notification!
                     if (pendingFriendsCount > 0) {
-                        String bodyText = "You have " + pendingFriendsCount + " pending friend request(s) waiting in ProduX!";
-                        triggerSystemNotification("New Friend Request!", bodyText, 1001);
+                        triggerSystemNotification("New Friend Request!", "You have " + pendingFriendsCount + " pending request(s)!", 1001);
                     }
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Worker Exception: " + e.getMessage());
         }
         return Result.success();
     }
 
     private void triggerSystemNotification(String title, String body, int notificationId) {
+        Log.i(TAG, "Triggering Notification: " + title);
         Context context = getApplicationContext();
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
-        // Create Notification Channel for Android O+ (API 26+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     CHANNEL_NAME,
-                    NotificationManager.IMPORTANCE_DEFAULT
+                    NotificationManager.IMPORTANCE_HIGH
             );
-            channel.setDescription("Channel for background polling alerts in ProduX");
             channel.enableVibration(true);
             notificationManager.createNotificationChannel(channel);
         }
 
-        // Click Action: Open MainActivity
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         
@@ -112,23 +107,19 @@ public class NotificationWorker extends Worker {
             flags |= PendingIntent.FLAG_IMMUTABLE;
         }
         
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                context,
-                0,
-                intent,
-                flags
-        );
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, notificationId, intent, flags);
 
-        // Build Notification
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher) // Use default launcher icon as notification icon
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setContentText(body)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentIntent(pendingIntent)
-                .setAutoCancel(true);
+                .setAutoCancel(true)
+                .setDefaults(NotificationCompat.DEFAULT_ALL);
 
-        // Fire Notification using dynamic notificationId
         notificationManager.notify(notificationId, builder.build());
     }
 }

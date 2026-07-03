@@ -26,6 +26,9 @@ import {
 } from '../features/social/socialSlice';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import PushToTalkButton from '../components/voice/PushToTalkButton';
+import VoiceIndicator from '../components/voice/VoiceIndicator';
+import VoiceSettings from '../components/voice/VoiceSettings';
 import useSocket from '../hooks/useSocket';
 import useFCM from '../hooks/useFCM';
 import { db, isConfigured } from '../api/firebase';
@@ -44,6 +47,7 @@ import {
   HiPaperClip,
   HiDownload,
   HiPhotograph,
+  HiCog,
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import { validateFile, compressFile, getFileCategory, getFileIcon, formatFileSize } from '../utils/fileCompressor';
@@ -80,6 +84,9 @@ const Social = () => {
 
   // Lightbox state for image viewing
   const [lightboxUrl, setLightboxUrl] = useState(null);
+  
+  // Voice settings state
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   
   const chatEndRef = useRef(null);
 
@@ -636,6 +643,18 @@ const Social = () => {
         >
           {isUploading ? '⏳' : 'Send'}
         </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
+          <PushToTalkButton roomId={activeGroup ? `group_${activeGroup._id}` : `dm_${[user._id, activeChatUser?._id].sort().join('_')}`} />
+          <button 
+            type="button" 
+            onClick={() => setShowVoiceSettings(true)}
+            className="btn-ghost" 
+            style={{ fontSize: '1.25rem', padding: '8px', borderRadius: '50%', color: 'var(--text-secondary)' }}
+            title="Voice Settings"
+          >
+            <HiCog />
+          </button>
+        </div>
       </form>
     </>
   );
@@ -985,6 +1004,7 @@ const Social = () => {
                 <span className="chat-user-name">{activeChatUser.name}</span>
                 <span className="chat-user-level">Lv.{activeChatUser.level}</span>
               </div>
+              <div style={{ margin: '0 10px' }}><VoiceIndicator /></div>
               <div style={{ flex: 1 }} />
               <button
                 className="btn-ghost chat-maximize-toggle"
@@ -1137,6 +1157,7 @@ const Social = () => {
                 <span className="chat-user-name">{activeGroup.name}</span>
                 <span className="chat-user-level" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{activeGroup.members.length} members</span>
               </div>
+              <div style={{ margin: '0 10px' }}><VoiceIndicator /></div>
               
               <div style={{ flex: 1 }} />
               
@@ -1237,6 +1258,9 @@ const Social = () => {
             {renderChatInputRow(handleSendGroupMessage)}
           </div>
         )}
+        
+        {/* ── VOICE SETTINGS MODAL ── */}
+        {showVoiceSettings && <VoiceSettings onClose={() => setShowVoiceSettings(false)} />}
 
         {/* ── IMAGE LIGHTBOX ── */}
         {lightboxUrl && (

@@ -1,0 +1,99 @@
+.ptt-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-left: 0.5rem;
+}
+
+.ptt-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  z-index: 10;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ptt-button:active,
+.ptt-button.active {
+  transform: scale(0.92);
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5), 0 0 25px rgba(239, 68, 68, 0.3);
+}
+
+.ptt-button.disabled {
+  background: #9ca3af;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Ripple Animation when talking */
+.ptt-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.4);
+  z-index: 1;
+  animation: ripple 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  0% {
+    width: 48px;
+    height: 48px;
+    opacity: 1;
+  }
+  100% {
+    width: 100px;
+    height: 100px;
+    opacity: 0;
+  }
+}
+
+.ptt-status {
+  position: absolute;
+  bottom: -20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.ptt-status.talking {
+  color: #ef4444;
+  animation: pulse-text 1.5s infinite;
+}
+
+@keyframes pulse-text {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Dark mode overrides (assuming index.css handles dark mode classes like .dark) */
+.dark .ptt-status {
+  color: #9ca3af;
+}
+.dark .ptt-status.talking {
+  color: #f87171;
+}

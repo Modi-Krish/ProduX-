@@ -23,8 +23,19 @@ export const connectSocket = (token) => {
     console.log('🔌 Socket disconnected:', reason);
   });
 
-  socket.on('connect_error', (err) => {
+  socket.on('connect_error', async (err) => {
     console.error('🔌 Socket connection error:', err.message);
+    if (err.message.includes('Authentication error')) {
+      console.log('Attempting to refresh token due to socket auth error...');
+      try {
+        const { auth } = await import('./firebase');
+        if (auth && auth.currentUser) {
+          await auth.currentUser.getIdToken(true); // Forces a refresh, App.jsx listener will update Redux
+        }
+      } catch (refreshErr) {
+        console.error('Failed to refresh token after socket auth error:', refreshErr);
+      }
+    }
   });
 
   return socket;

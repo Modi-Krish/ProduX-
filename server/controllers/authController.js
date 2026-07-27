@@ -1,5 +1,20 @@
 const { admin, db, formatDoc } = require('../config/firebase');
 const logger = require('../utils/logger');
+const crypto = require('crypto');
+
+const hashPin = (pin) => {
+  if (!pin) return null;
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derivedKey = crypto.scryptSync(pin, salt, 64).toString('hex');
+  return `${salt}:${derivedKey}`;
+};
+
+const verifyPinHash = (pin, hashStr) => {
+  if (!hashStr) return false;
+  const [salt, key] = hashStr.split(':');
+  const derivedKey = crypto.scryptSync(pin, salt, 64).toString('hex');
+  return key === derivedKey;
+};
 
 // ── Constants ─────────────────────────────────────────────
 const MAX_CUSTOM_ID_ATTEMPTS = 15;
@@ -71,6 +86,8 @@ const register = async (req, res, next) => {
       pushSubscriptions: [],
       fcmTokens: [],
       avatar: null, // Stores R2 attachment object
+      communityPin: null,
+      walkieTalkiePin: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -290,6 +307,80 @@ const deleteAccount = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Update feature PINs
+ * @route   PUT /api/auth/pins
+ * @access  Private
+ */
+const updatePins = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { communityPin, walkieTalkiePin } = req.body;
+
+    const updateData = { updatedAt: new Date() };
+
+    if (communityPin !== undefined) {
+      updateData.communityPin = hashPin(communityPin);
+    }
+    
+    if (walkieTalkiePin !== undefined) {
+      updateData.walkieTalkiePin = hashPin(walkieTalkiePin);
+    }
+
+    if (Object.keys(updateData).length === 1) { // only updatedAt
+      return res.status(400).json({ success: false, message: 'No pins provided' });
+    }
+
+    await db.collection('users').doc(userId).update(updateData);
+
+    res.status(200).json({
+      success: true,
+      message: 'PINs updated successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Verify feature PIN
+ * @route   POST /api/auth/verify-pin
+ * @access  Private
+ */
+const verifyPin = async (req, res, next) => {
+  try {
+    const { feature, pin } = req.body;
+    
+    if (!feature || !pin) {
+      return res.status(400).json({ success: false, message: 'Feature and PIN are required' });
+    }
+
+    const fieldName = feature === 'community' ? 'communityPin' : feature === 'walkieTalkie' ? 'walkieTalkiePin' : null;
+    
+    if (!fieldName) {
+      return res.status(400).json({ success: false, message: 'Invalid feature specified' });
+    }
+
+    const storedHash = req.user[fieldName];
+    if (!storedHash) {
+      return res.status(400).json({ success: false, message: 'No PIN configured for this feature' });
+    }
+
+    const isValid = verifyPinHash(pin, storedHash);
+
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'Incorrect PIN' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'PIN verified successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -297,4 +388,6 @@ module.exports = {
   googleLogin,
   deleteAccount,
   updateProfile,
+  updatePins,
+  verifyPin,
 };

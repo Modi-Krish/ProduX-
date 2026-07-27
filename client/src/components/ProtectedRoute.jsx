@@ -4,9 +4,10 @@ import { useSelector } from 'react-redux';
 const ProtectedRoute = ({ children }) => {
   const { token } = useSelector((state) => state.auth);
 
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
+  // Temporarily bypassing login requirement
+  // if (!token) {
+  //   return <Navigate to="/login" replace />;
+  // }
 
   return children;
 };

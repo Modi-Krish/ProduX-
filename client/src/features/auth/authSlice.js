@@ -155,13 +155,13 @@ const authSlice = createSlice({
       state.token = action.payload.token || null;
       state.user = action.payload.user || null;
       state.isInitialized = true;
-      if (action.payload.token) {
-        localStorage.setItem('token', action.payload.token);
+      if (state.token) {
+        localStorage.setItem('token', state.token);
       } else {
         localStorage.removeItem('token');
       }
-      if (action.payload.user) {
-        localStorage.setItem('user', JSON.stringify(action.payload.user));
+      if (state.user) {
+        localStorage.setItem('user', JSON.stringify(state.user));
       } else {
         localStorage.removeItem('user');
       }

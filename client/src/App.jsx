@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import Social from './pages/Social';
 import WalkieDashboard from './pages/WalkieDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import PinProtection from './components/PinProtection';
 import { auth } from './api/firebase';
 import { onIdTokenChanged } from 'firebase/auth';
 import useFCM from './hooks/useFCM';
@@ -142,7 +143,9 @@ function App() {
           path="/social"
           element={
             <ProtectedRoute>
-              <Social />
+              <PinProtection feature="community">
+                <Social />
+              </PinProtection>
             </ProtectedRoute>
           }
         />
@@ -150,7 +153,9 @@ function App() {
           path="/walkie"
           element={
             <ProtectedRoute>
-              <WalkieDashboard />
+              <PinProtection feature="walkieTalkie">
+                <WalkieDashboard />
+              </PinProtection>
             </ProtectedRoute>
           }
         />
@@ -158,7 +163,9 @@ function App() {
           path="/walkie/:roomId"
           element={
             <ProtectedRoute>
-              <WalkieDashboard />
+              <PinProtection feature="walkieTalkie">
+                <WalkieDashboard />
+              </PinProtection>
             </ProtectedRoute>
           }
         />

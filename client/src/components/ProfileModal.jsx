@@ -1,16 +1,46 @@
 import { useState } from 'react';
-import { HiX, HiUser, HiMail, HiCalendar, HiShieldCheck, HiTrash } from 'react-icons/hi';
+import { HiX, HiUser, HiMail, HiCalendar, HiShieldCheck, HiTrash, HiLockClosed, HiTrendingUp } from 'react-icons/hi';
 import { useSelector, useDispatch } from 'react-redux';
 import { deleteAccount, updateProfile } from '../features/auth/authSlice';
+import { updatePinsUser } from '../api/authApi';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import FileUploadDropzone from './common/FileUploadDropzone';
 
 const ProfileModal = ({ onClose }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { summary } = useSelector((state) => state.dashboard);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
+
+  const [pinData, setPinData] = useState({ communityPin: '', walkieTalkiePin: '' });
+  const [isSavingPins, setIsSavingPins] = useState(false);
+  const [hasSetPin, setHasSetPin] = useState(!!user?.communityPin || !!user?.walkieTalkiePin);
+
+  const handleSavePins = async () => {
+    try {
+      const payload = {};
+      if (pinData.communityPin.trim()) payload.communityPin = pinData.communityPin.trim();
+      if (pinData.walkieTalkiePin.trim()) payload.walkieTalkiePin = pinData.walkieTalkiePin.trim();
+      
+      if (Object.keys(payload).length === 0) {
+        toast.error('Please enter a PIN to save');
+        return;
+      }
+      
+      setIsSavingPins(true);
+      await updatePinsUser(payload);
+      toast.success('PINs updated successfully');
+      setPinData({ communityPin: '', walkieTalkiePin: '' });
+      setHasSetPin(true);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update PINs');
+    } finally {
+      setIsSavingPins(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     try {
@@ -168,28 +198,147 @@ const ProfileModal = ({ onClose }) => {
           <div className="p-badge yellow">Focus Master</div>
         </div>
 
-        <div className="modal-footer" style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
-          <button className="btn btn-primary" onClick={onClose} style={{ width: '100%' }}>
+        <div style={{ marginTop: '1.5rem', padding: '1rem' }}>
+          <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem', color: 'var(--fg)', fontSize: '1.1rem' }}><HiLockClosed /> Feature PINs & Access</h4>
+          <p style={{ fontSize: '0.85rem', color: 'var(--fg-muted)', marginBottom: '1.5rem' }}>Configure 4-6 digit PINs to secure sensitive features. Leave blank to keep current PIN.</p>
+          
+          {!hasSetPin && (
+            <>
+              <div style={{ display: 'flex', width: '100%', marginBottom: '1.5rem' }}>
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--fg-muted)', marginBottom: '4px', display: 'block', paddingLeft: '1rem' }}>Community PIN</label>
+                  <input 
+                    type="password" 
+                    placeholder="New PIN" 
+                    value={pinData.communityPin}
+                    onChange={(e) => setPinData({...pinData, communityPin: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '2px solid var(--fg)',
+                      borderTopLeftRadius: '16px',
+                      borderBottomLeftRadius: '16px',
+                      background: 'var(--bg)',
+                      color: 'var(--fg)',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--fg-muted)', marginBottom: '4px', display: 'block', paddingLeft: '1rem' }}>Walkie Talkie PIN</label>
+                  <input 
+                    type="password" 
+                    placeholder="New PIN" 
+                    value={pinData.walkieTalkiePin}
+                    onChange={(e) => setPinData({...pinData, walkieTalkiePin: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '2px solid var(--fg)',
+                      borderTopRightRadius: '16px',
+                      borderBottomRightRadius: '16px',
+                      background: 'var(--bg)',
+                      color: 'var(--fg)',
+                      outline: 'none',
+                      marginLeft: '-2px'
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <button 
+                onClick={handleSavePins}
+                disabled={isSavingPins}
+                style={{ 
+                  width: '100%', 
+                  marginBottom: '1.5rem',
+                  padding: '12px',
+                  borderRadius: '24px',
+                  border: '2px solid var(--fg)',
+                  background: 'var(--bg)',
+                  color: 'var(--fg)',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                {isSavingPins ? 'Saving...' : 'Update PINs'}
+              </button>
+            </>
+          )}
+          
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+            <button 
+              style={{ 
+                flex: 1, 
+                display: 'flex', 
+                gap: '8px', 
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '12px',
+                borderRadius: '24px',
+                border: '2px solid var(--fg)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--fg)',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+              onClick={() => { onClose(); navigate('/social'); }}
+            >
+              <HiTrendingUp /> Community
+            </button>
+            <button 
+              style={{ 
+                flex: 1, 
+                display: 'flex', 
+                gap: '8px', 
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '12px',
+                borderRadius: '24px',
+                border: '2px solid var(--fg)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--fg)',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+              onClick={() => { onClose(); navigate('/walkie'); }}
+            >
+              🎤 Walkie-Talkie
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center', padding: '0 1rem 1.5rem 1rem' }}>
+          <button 
+            onClick={onClose} 
+            style={{ 
+              width: '100%',
+              padding: '14px',
+              borderRadius: '24px',
+              border: '2px solid var(--fg)',
+              background: '#8B5CF6',
+              boxShadow: '0 4px 0 var(--fg)',
+              color: 'white',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
             Done
           </button>
           <button 
-            className="btn-ghost delete" 
             onClick={() => setShowConfirm(true)} 
             style={{ 
-              width: '100%', 
               color: '#EF4444',
-              fontSize: '0.9rem',
+              fontSize: '0.95rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              marginTop: '0.5rem',
-              padding: '8px 16px',
-              borderRadius: 'var(--radius-md)',
               cursor: 'pointer',
-              border: '1.5px solid transparent',
+              border: 'none',
               background: 'transparent',
-              fontWeight: '600'
+              fontWeight: 'bold'
             }}
             title="Permanently delete your account"
           >

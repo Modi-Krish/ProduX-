@@ -42,25 +42,11 @@ const Navbar = () => {
 
         <div className="navbar-actions">
           <button
-            className={`btn-nav ${!isOnSocial ? 'active' : ''}`}
+            className={`btn-nav ${(!isOnSocial && !isOnWalkie) ? 'active' : ''}`}
             onClick={() => navigate('/')}
             title="Dashboard"
           >
             <HiHome /> <span className="nav-label">Dashboard</span>
-          </button>
-          <button
-            className={`btn-nav ${isOnSocial ? 'active' : ''}`}
-            onClick={() => navigate('/social')}
-            title="Community"
-          >
-            <HiTrendingUp /> <span className="nav-label">Community</span>
-          </button>
-          <button
-            className={`btn-nav ${isOnWalkie ? 'active' : ''}`}
-            onClick={() => navigate('/walkie')}
-            title="Walkie-Talkie"
-          >
-            <span style={{ fontSize: '1.2rem' }}>🎤</span> <span className="nav-label">Walkie-Talkie</span>
           </button>
 
           <div className="nav-divider" />

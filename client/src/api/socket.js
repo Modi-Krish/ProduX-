@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { auth } from './firebase';
 
 let socket = null;
 
@@ -28,7 +29,6 @@ export const connectSocket = (token) => {
     if (err.message.includes('Authentication error')) {
       console.log('Attempting to refresh token due to socket auth error...');
       try {
-        const { auth } = await import('./firebase');
         if (auth && auth.currentUser) {
           await auth.currentUser.getIdToken(true); // Forces a refresh, App.jsx listener will update Redux
         }
